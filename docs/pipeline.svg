@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 820" fill="none">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#484f58"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1: Raw Input -->
+  <rect x="220" y="10" width="280" height="50" rx="8" fill="#0d1117" stroke="#00bfff" stroke-width="1.5"/>
+  <text x="360" y="32" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Raw Cyton</text>
+  <text x="360" y="50" text-anchor="middle" fill="#8b949e" font-size="11">250 Hz  ·  8 channels</text>
+  <line x1="360" y1="60" x2="360" y2="90" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2: Detrend -->
+  <rect x="250" y="90" width="220" height="40" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="360" y="115" text-anchor="middle" fill="#c9d1d9" font-size="12">Detrend (DC removal)</text>
+  <line x1="360" y1="130" x2="360" y2="160" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3: Bandpass -->
+  <rect x="220" y="160" width="280" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="360" y="183" text-anchor="middle" fill="#c9d1d9" font-size="12">Bandpass Filter  20 – 120 Hz</text>
+  <text x="360" y="200" text-anchor="middle" fill="#8b949e" font-size="11">Butterworth, order 2</text>
+  <line x1="360" y1="210" x2="360" y2="240" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 4: Notch -->
+  <rect x="220" y="240" width="280" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="360" y="263" text-anchor="middle" fill="#c9d1d9" font-size="12">Notch Filter  50 Hz + 60 Hz</text>
+  <text x="360" y="280" text-anchor="middle" fill="#8b949e" font-size="11">Power line rejection</text>
+  <line x1="360" y1="290" x2="360" y2="320" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 5: Ring Buffer -->
+  <rect x="230" y="320" width="260" height="45" rx="8" fill="#0d1117" stroke="#e94560" stroke-width="1.5"/>
+  <text x="360" y="348" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Ring Buffer  (10 s)</text>
+
+  <!-- Branch left: Windows -->
+  <line x1="310" y1="365" x2="200" y2="420" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Branch right: Live Viz -->
+  <line x1="410" y1="365" x2="530" y2="420" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Windows box -->
+  <rect x="80" y="420" width="240" height="45" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="200" y="440" text-anchor="middle" fill="#c9d1d9" font-size="12">200 ms Windows</text>
+  <text x="200" y="456" text-anchor="middle" fill="#8b949e" font-size="11">75% overlap</text>
+
+  <!-- Live Viz box -->
+  <rect x="430" y="420" width="220" height="45" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="540" y="440" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="600">Live Visualization</text>
+  <text x="540" y="456" text-anchor="middle" fill="#8b949e" font-size="11">12 new samples / window</text>
+
+  <!-- Branch from Windows to Proportional and Classifier -->
+  <line x1="140" y1="465" x2="140" y2="520" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="260" y1="465" x2="420" y2="520" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Proportional box -->
+  <rect x="40" y="520" width="210" height="60" rx="8" fill="#0d1117" stroke="#00bfff" stroke-width="1.5"/>
+  <text x="145" y="545" text-anchor="middle" fill="#00bfff" font-size="11" font-weight="600">PROPORTIONAL</text>
+  <text x="145" y="565" text-anchor="middle" fill="#8b949e" font-size="11">RMS  -->  Joint Angle</text>
+
+  <!-- Classifier box -->
+  <rect x="320" y="520" width="280" height="60" rx="8" fill="#0d1117" stroke="#00bfff" stroke-width="1.5"/>
+  <text x="460" y="545" text-anchor="middle" fill="#00bfff" font-size="11" font-weight="600">CLASSIFIER</text>
+  <text x="460" y="565" text-anchor="middle" fill="#8b949e" font-size="11">Features --> LDA  |  Raw --> TCN / Mamba</text>
+
+  <!-- Arrows converging to Majority Vote -->
+  <line x1="145" y1="580" x2="300" y2="640" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="460" y1="580" x2="360" y2="640" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Majority Vote -->
+  <rect x="230" y="640" width="260" height="45" rx="8" fill="#161b22" stroke="#f0883e" stroke-width="1.5"/>
+  <text x="360" y="660" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="600">Majority Vote</text>
+  <text x="360" y="676" text-anchor="middle" fill="#8b949e" font-size="11">5-window consensus</text>
+  <line x1="360" y1="685" x2="360" y2="720" stroke="#484f58" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Arduino Bridge -->
+  <rect x="210" y="720" width="300" height="50" rx="8" fill="#0d1117" stroke="#00bfff" stroke-width="1.5"/>
+  <text x="360" y="742" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Arduino Bridge</text>
+  <text x="360" y="760" text-anchor="middle" fill="#8b949e" font-size="11">Binary protocol --> Servo actuation</text>
+</svg>
