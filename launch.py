@@ -57,11 +57,11 @@ def main():
     parser.add_argument("--browser", action="store_true", help="Open in browser instead of native window")
     args = parser.parse_args()
 
-    # Default to mock mode unless --real is specified or EMG_MOCK is already set
-    if args.real:
-        os.environ["EMG_MOCK"] = "0"
-    elif not os.environ.get("EMG_MOCK"):
+    # Only set EMG_MOCK if explicitly requested; otherwise let the dashboard UI control it
+    if args.mock:
         os.environ["EMG_MOCK"] = "1"
+    elif args.real:
+        os.environ["EMG_MOCK"] = "0"
     if args.cyton:
         os.environ["CYTON_PORT"] = args.cyton
     if args.arduino:

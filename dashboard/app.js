@@ -280,7 +280,11 @@ async function detectMode() {
       $('port-settings').style.display = 'block';
       await scanPorts();
     }
-  } catch (_) {}
+  } catch (_) {
+    // Default to real if config unavailable
+    $('stream-mode').value = 'real';
+    $('port-settings').style.display = 'block';
+  }
 }
 
 async function loadStatus() {
