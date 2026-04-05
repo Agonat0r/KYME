@@ -292,27 +292,34 @@ async def list_serial_ports():
 
 @app.post("/api/stream/start")
 async def stream_start(req: ConnectRequest = None):
+    logger.info(f"stream_start called: req={req}, current_stream={type(app_state.stream).__name__}, is_running={app_state.stream.is_running}")
     if app_state.stream.is_running:
         return {"ok": True, "message": "Already streaming"}
 
     # Switch stream backend if mode was specified
     mode = (req.mode if req else None)
+    logger.info(f"stream_start mode={mode!r}")
     if mode == "real" and isinstance(app_state.stream, SimulatedCytonStream):
+        logger.info("Swapping to real CytonStream")
         new_stream = CytonStream()
         new_stream.add_window_callback(app_state.pipeline.on_window)
         new_stream.add_window_callback(_on_window_vis)
         app_state.stream = new_stream
     elif mode == "mock" and not isinstance(app_state.stream, SimulatedCytonStream):
+        logger.info("Swapping to SimulatedCytonStream")
         new_stream = SimulatedCytonStream()
         new_stream.add_window_callback(app_state.pipeline.on_window)
         new_stream.add_window_callback(_on_window_vis)
         app_state.stream = new_stream
 
     port = (req.cyton_port if req else None) or config.serial_port
+    logger.info(f"Connecting stream on port={port}, stream_type={type(app_state.stream).__name__}")
     if not app_state.stream.connect(serial_port=port):
         raise HTTPException(500, "Failed to connect to Cyton board")
     if not app_state.stream.start():
         raise HTTPException(500, "Failed to start stream")
+    logger.info(f"Stream started successfully: {type(app_state.stream).__name__}")
+    return {"ok": True, "stream_type": type(app_state.stream).__name__}
     app_state.set_state(SystemState.STREAMING)
     return {"ok": True}
 

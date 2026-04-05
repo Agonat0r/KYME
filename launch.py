@@ -28,7 +28,7 @@ def start_server(host, port):
         host=host,
         port=port,
         reload=False,
-        log_level="warning",
+        log_level="info",
     )
 
 
