@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/KYMA-κῦμα-00bfff?style=for-the-badge&labelColor=0a0f1a" alt="KYMA" height="40"/>
+  <img src="https://img.shields.io/badge/KYMA-00bfff?style=for-the-badge&labelColor=0a0f1a" alt="KYMA" height="40"/>
 </p>
 
 <h1 align="center">KYMA</h1>
@@ -20,14 +20,35 @@
 
 ## Overview
 
-**KYMA** (from Greek *κῦμα* — "wave") is a real-time biosignal acquisition, processing, and control platform built on top of [OpenBCI](https://openbci.com/) hardware. It captures EMG/EEG/ECG signals, runs them through configurable pipelines, and maps the output to physical actuators or software actions — all from a single browser dashboard.
+**KYMA** is a real-time biosignal acquisition, processing, and control platform built on top of [OpenBCI](https://openbci.com/) hardware. It captures EMG/EEG/ECG signals, runs them through configurable pipelines, and maps the output to physical actuators or software actions — all from a single browser dashboard.
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────────┐     ┌──────────────┐
-│  OpenBCI     │     │  KYMA        │     │  Dashboard       │     │  Actuator     │
-│  Cyton Board │────▶│  Server      │────▶│  (browser)       │────▶│  Arduino /    │
-│  (8ch EMG)   │ USB │  (FastAPI)   │ WS  │  3D arm, charts  │ API │  Robot / etc  │
-└──────────────┘     └──────────────┘     └──────────────────┘     └──────────────┘
+```mermaid
+flowchart LR
+    subgraph hw ["🔌 Hardware"]
+        A["OpenBCI\nCyton Board\n(8ch EMG)"]
+    end
+
+    subgraph backend ["⚙️ Backend"]
+        B["KYMA Server\n(FastAPI)"]
+    end
+
+    subgraph ui ["🖥️ Frontend"]
+        C["Dashboard\n3D Arm · Charts\nBlock Editor"]
+    end
+
+    subgraph actuator ["🦾 Output"]
+        D["Arduino\nRobot Arm\nServo Array"]
+    end
+
+    A -- "USB" --> B
+    B -- "WebSocket" --> C
+    C -- "REST API" --> B
+    B -- "Serial" --> D
+
+    style hw fill:#1a1a2e,stroke:#00bfff,color:#fff
+    style backend fill:#16213e,stroke:#0f3460,color:#fff
+    style ui fill:#1a1a2e,stroke:#e94560,color:#fff
+    style actuator fill:#16213e,stroke:#00bfff,color:#fff
 ```
 
 ### Key Features
@@ -162,12 +183,16 @@ For discrete gesture recognition with higher accuracy:
 
 ### Electrode Placement
 
-| Channels | Muscles | Controls |
-|----------|---------|----------|
+KYMA gives you full control over channel-to-muscle mapping — place electrodes on whichever muscles you want to control and assign them in the dashboard. Here's a common upper-limb setup as a starting point:
+
+| Channels | Example Muscles | Example Controls |
+|----------|----------------|-----------------|
 | CH1 + CH2 | Biceps / Triceps | Elbow flex/extend |
 | CH3 + CH4 | Wrist flexors / extensors | Wrist pitch |
 | CH5 + CH6 | Forearm pronators / supinators | Forearm rotation |
 | CH7 + CH8 | Finger flexors / extensors | Grip |
+
+> **Tip:** You can map any channel to any joint or action through the Proportional Control panel or the visual block editor. Experiment with different placements to find what works best for your use case.
 
 *Ground/reference: earlobe clip on BIAS + SRB2*
 
@@ -175,37 +200,35 @@ For discrete gesture recognition with higher accuracy:
 
 ## Signal Processing Pipeline
 
-```
-Raw Cyton (250 Hz, 8ch)
-    │
-    ▼
-Detrend (DC removal)
-    │
-    ▼
-Bandpass 20–120 Hz (Butterworth, order 2)
-    │
-    ▼
-Notch 50 Hz + 60 Hz (power line rejection)
-    │
-    ▼
-Ring buffer (10 s) ──────────────────┐
-    │                                │
-    ▼                                ▼
-200 ms windows (75% overlap)    Live visualization
-    │                           (12 new samples/window)
-    ▼
-┌─────────────────────────────────────┐
-│  Proportional    │   Classifier     │
-│  RMS → angle     │   Features → LDA │
-│  (direct map)    │   Raw → TCN      │
-│                  │   Raw → Mamba    │
-└─────────────────────────────────────┘
-    │
-    ▼
-Majority vote (5-window) → Gesture prediction
-    │
-    ▼
-Arduino bridge (binary protocol) → Servo actuation
+```mermaid
+flowchart TD
+    A["🎛️ Raw Cyton\n250 Hz · 8 channels"] --> B["Detrend\n(DC removal)"]
+    B --> C["Bandpass Filter\n20 – 120 Hz\nButterworth order 2"]
+    C --> D["Notch Filter\n50 Hz + 60 Hz\nPower line rejection"]
+    D --> E["Ring Buffer\n10 seconds"]
+
+    E --> F["200 ms Windows\n75% overlap"]
+    E --> G["📊 Live Visualization\n12 new samples / window"]
+
+    F --> H["Proportional\nRMS → Joint Angle\n(direct mapping)"]
+    F --> I["Classifier\nFeatures → LDA\nRaw → TCN / Mamba"]
+
+    H --> J["🗳️ Majority Vote\n5-window consensus"]
+    I --> J
+
+    J --> K["🦾 Arduino Bridge\nBinary protocol → Servo actuation"]
+
+    style A fill:#0d1117,stroke:#00bfff,color:#fff
+    style B fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+    style C fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+    style D fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+    style E fill:#1a1a2e,stroke:#e94560,color:#fff
+    style F fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+    style G fill:#0d1117,stroke:#3fb950,color:#3fb950
+    style H fill:#1a1a2e,stroke:#00bfff,color:#fff
+    style I fill:#1a1a2e,stroke:#00bfff,color:#fff
+    style J fill:#161b22,stroke:#f0883e,color:#fff
+    style K fill:#0d1117,stroke:#00bfff,color:#fff
 ```
 
 ---
@@ -257,19 +280,6 @@ The server exposes a REST API (see `/docs` for interactive Swagger UI when runni
 
 ---
 
-## Roadmap
-
-- [ ] EEG support (attention/meditation metrics)
-- [ ] EOG support (eye tracking)
-- [ ] ECG support (heart rate variability)
-- [ ] Plugin system for custom signal processors
-- [ ] WebSerial (no Python backend needed)
-- [ ] Mobile companion app
-- [ ] Multi-board support (Cyton + Daisy = 16 channels)
-- [ ] Cloud model sharing
-
----
-
 ## Contributing
 
 Contributions are welcome under the terms of the AGPL-3.0 license. All derivative works must remain open source.
@@ -296,5 +306,5 @@ This means:
 ---
 
 <p align="center">
-  <em>KYMA — κῦμα — from wave to action</em>
+  <em>KYMA — from wave to action</em>
 </p>
