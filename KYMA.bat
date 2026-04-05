@@ -31,7 +31,7 @@ if not exist ".venv\Scripts\python.exe" (
         pause
         exit /b 1
     )
-    echo   [2/3] Installing dependencies (this will take a while)...
+    echo   [2/3] Installing dependencies - this will take a while...
     .venv\Scripts\pip install -r requirements.txt --disable-pip-version-check
     if %errorlevel% neq 0 (
         echo   [ERROR] Failed to install dependencies.
@@ -58,6 +58,6 @@ if not exist "launch.py" (
 
 .venv\Scripts\python launch.py
 echo.
-echo   KYMA has stopped. (Exit code: %errorlevel%)
+echo   KYMA has stopped. Exit code: %errorlevel%
 echo.
 pause
