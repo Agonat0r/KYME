@@ -50,9 +50,14 @@ echo   Starting KYMA...
 echo   Close this window to stop.
 echo.
 
-.venv\Scripts\python launch.py
-if %errorlevel% neq 0 (
-    echo.
-    echo   Something went wrong. Press any key to close.
-    pause >nul
+if not exist "launch.py" (
+    echo   [ERROR] launch.py not found. Make sure you're in the KYMA folder.
+    pause
+    exit /b 1
 )
+
+.venv\Scripts\python launch.py
+echo.
+echo   KYMA has stopped. (Exit code: %errorlevel%)
+echo.
+pause
