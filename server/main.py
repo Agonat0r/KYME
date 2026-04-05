@@ -294,6 +294,14 @@ async def list_serial_ports():
 async def stream_start(req: ConnectRequest = None):
     if app_state.stream.is_running:
         return {"ok": True, "message": "Already streaming"}
+
+    # Switch stream backend if mode was specified
+    mode = (req.mode if req else None)
+    if mode == "real" and isinstance(app_state.stream, SimulatedCytonStream):
+        app_state.stream = CytonStream()
+    elif mode == "mock" and not isinstance(app_state.stream, SimulatedCytonStream):
+        app_state.stream = SimulatedCytonStream()
+
     port = (req.cyton_port if req else None) or config.serial_port
     if not app_state.stream.connect(serial_port=port):
         raise HTTPException(500, "Failed to connect to Cyton board")

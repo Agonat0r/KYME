@@ -644,7 +644,7 @@ function bindButtons() {
         await post('/api/stream/stop');
       } else {
         const mode = $('stream-mode').value;
-        const body = {};
+        const body = { mode: mode };
         if (mode === 'real') {
           const cPort = $('cyton-port').value;
           if (cPort) body.cyton_port = cPort;
