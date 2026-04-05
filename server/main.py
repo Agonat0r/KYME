@@ -270,7 +270,22 @@ async def get_config():
         "window_size_ms": config.window_size_ms,
         "window_increment_ms": config.window_increment_ms,
         "confidence_threshold": config.prediction_confidence_threshold,
+        "mock": USE_MOCK,
     }
+
+
+@app.get("/api/ports")
+async def list_serial_ports():
+    """List available serial/COM ports for the frontend port selector."""
+    import serial.tools.list_ports
+    ports = []
+    for p in serial.tools.list_ports.comports():
+        ports.append({
+            "device": p.device,
+            "description": p.description,
+            "hwid": p.hwid,
+        })
+    return {"ports": ports}
 
 
 # ── Stream ────────────────────────────────────────────────────────────────────

@@ -183,6 +183,7 @@ async function boot() {
 
   // grab server state before building the UI
   await loadStatus();
+  await detectMode();
   buildLegend();
   buildRmsBars();
   buildServos();
@@ -230,6 +231,57 @@ async function api(method, path, body) {
 }
 const get  = p => api('GET', p);
 const post = (p,b) => api('POST', p, b);
+
+// ── Port scanning + mode detection ──────────────────────────────────────────
+
+async function scanPorts() {
+  try {
+    const res = await get('/api/ports');
+    const ports = res.ports || [];
+    const cytonSel = $('cyton-port');
+    const arduinoSel = $('arduino-port');
+
+    // Rebuild Cyton port options
+    cytonSel.innerHTML = '';
+    if (ports.length === 0) {
+      cytonSel.innerHTML = '<option value="">No ports found</option>';
+    } else {
+      ports.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.device;
+        opt.textContent = p.device + ' - ' + p.description;
+        cytonSel.appendChild(opt);
+      });
+    }
+
+    // Rebuild Arduino port options
+    arduinoSel.innerHTML = '<option value="">None</option>';
+    ports.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.device;
+      opt.textContent = p.device + ' - ' + p.description;
+      arduinoSel.appendChild(opt);
+    });
+
+    toast('Found ' + ports.length + ' port(s)');
+  } catch (e) {
+    toast('Port scan failed: ' + e.message, 'red');
+  }
+}
+
+async function detectMode() {
+  try {
+    const cfg = await get('/api/config');
+    if (cfg.mock) {
+      $('stream-mode').value = 'mock';
+      $('port-settings').style.display = 'none';
+    } else {
+      $('stream-mode').value = 'real';
+      $('port-settings').style.display = 'block';
+      await scanPorts();
+    }
+  } catch (_) {}
+}
 
 async function loadStatus() {
   try {
@@ -575,11 +627,32 @@ function bindButtons() {
     } catch (e) { toast(e.message, 'red'); }
   };
 
+  // --- mode toggle: show/hide port settings ---
+  $('stream-mode').onchange = () => {
+    const isReal = $('stream-mode').value === 'real';
+    $('port-settings').style.display = isReal ? 'block' : 'none';
+    if (isReal) scanPorts();
+  };
+
+  // --- scan serial ports ---
+  $('btn-refresh-ports').onclick = () => scanPorts();
+
   // --- start/stop the brainflow stream ---
   $('btn-stream').onclick = async () => {
     try {
-      if (S.streaming) await post('/api/stream/stop');
-      else await post('/api/stream/start');
+      if (S.streaming) {
+        await post('/api/stream/stop');
+      } else {
+        const mode = $('stream-mode').value;
+        const body = {};
+        if (mode === 'real') {
+          const cPort = $('cyton-port').value;
+          if (cPort) body.cyton_port = cPort;
+          const aPort = $('arduino-port').value;
+          if (aPort) body.arduino_port = aPort;
+        }
+        await post('/api/stream/start', body);
+      }
     } catch (e) { toast(e.message, 'red'); }
   };
 

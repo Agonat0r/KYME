@@ -719,6 +719,26 @@
     <!-- stream start/stop + calibrate + record session -->
     <div class="card">
       <h3>Stream</h3>
+      <div style="margin-bottom:6px">
+        <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:3px">Mode</label>
+        <select id="stream-mode" style="width:100%;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:var(--font)">
+          <option value="mock">Simulated (no hardware)</option>
+          <option value="real">Real Cyton Board</option>
+        </select>
+      </div>
+      <div id="port-settings" style="display:none;margin-bottom:6px">
+        <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:3px">Cyton Port</label>
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <select id="cyton-port" style="flex:1;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:var(--font)">
+            <option value="">Detecting...</option>
+          </select>
+          <button id="btn-refresh-ports" class="btn" style="width:auto;padding:3px 8px;font-size:10px">Scan</button>
+        </div>
+        <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:3px">Arduino Port (optional)</label>
+        <select id="arduino-port" style="width:100%;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:var(--font)">
+          <option value="">None</option>
+        </select>
+      </div>
       <button id="btn-stream" class="btn primary">Start Stream</button>
       <div style="margin-top:6px;display:flex;gap:6px">
         <button id="btn-calibrate" class="btn" style="flex:1">Calibrate</button>
