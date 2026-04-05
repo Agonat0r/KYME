@@ -298,9 +298,15 @@ async def stream_start(req: ConnectRequest = None):
     # Switch stream backend if mode was specified
     mode = (req.mode if req else None)
     if mode == "real" and isinstance(app_state.stream, SimulatedCytonStream):
-        app_state.stream = CytonStream()
+        new_stream = CytonStream()
+        new_stream.add_window_callback(app_state.pipeline.on_window)
+        new_stream.add_window_callback(_on_window_vis)
+        app_state.stream = new_stream
     elif mode == "mock" and not isinstance(app_state.stream, SimulatedCytonStream):
-        app_state.stream = SimulatedCytonStream()
+        new_stream = SimulatedCytonStream()
+        new_stream.add_window_callback(app_state.pipeline.on_window)
+        new_stream.add_window_callback(_on_window_vis)
+        app_state.stream = new_stream
 
     port = (req.cyton_port if req else None) or config.serial_port
     if not app_state.stream.connect(serial_port=port):
