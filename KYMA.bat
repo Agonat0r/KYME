@@ -1,41 +1,52 @@
 @echo off
-title KYMA Launcher
+title KYMA
+cd /d "%~dp0"
+
 echo.
-echo  ============================================
-echo   KYMA - Biosignal Control Platform
-echo  ============================================
+echo   ╔══════════════════════════════════════╗
+echo   ║   KYMA - Biosignal Control Platform  ║
+echo   ╚══════════════════════════════════════╝
 echo.
 
-:: Check if Python is installed
+:: ── Check Python ──────────────────────────────────────────────
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [ERROR] Python is not installed or not in PATH.
-    echo  Please install Python 3.10+ from https://python.org
+    echo   [ERROR] Python not found.
+    echo   Install Python 3.10+ from https://python.org
+    echo   Make sure "Add to PATH" is checked during install.
     echo.
     pause
     exit /b 1
 )
 
-:: Check if dependencies are installed, install if not
-if not exist ".venv" (
-    echo  [1/3] Creating virtual environment...
+:: ── First-run setup ───────────────────────────────────────────
+if not exist ".venv\Scripts\python.exe" (
+    echo   First-time setup — this only happens once.
+    echo.
+    echo   [1/3] Creating virtual environment...
     python -m venv .venv
-    echo  [2/3] Installing dependencies (first run only)...
-    .venv\Scripts\pip install -r requirements.txt -q
-    echo  [3/3] Installing desktop window support...
-    .venv\Scripts\pip install pywebview -q
+    if %errorlevel% neq 0 (
+        echo   [ERROR] Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
+    echo   [2/3] Installing dependencies...
+    .venv\Scripts\pip install -r requirements.txt -q --disable-pip-version-check
+    echo   [3/3] Installing desktop window...
+    .venv\Scripts\pip install pywebview -q --disable-pip-version-check
     echo.
-    echo  Setup complete.
+    echo   Setup complete!
     echo.
-) else (
-    echo  Virtual environment found.
 )
 
-echo  Starting KYMA...
-echo  Close this window to stop the server.
+:: ── Launch ────────────────────────────────────────────────────
+echo   Starting KYMA...
+echo   Close this window to stop.
 echo.
 
-:: Launch with pywebview desktop window in mock mode
-:: To use real hardware, remove --mock and set COM ports:
-::   .venv\Scripts\python launch.py --cyton COM8 --arduino COM4
 .venv\Scripts\python launch.py --mock
+if %errorlevel% neq 0 (
+    echo.
+    echo   Something went wrong. Press any key to close.
+    pause >nul
+)

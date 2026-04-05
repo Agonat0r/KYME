@@ -82,11 +82,22 @@ KYMA/
 - **OpenBCI Cyton** board + USB dongle (or use mock mode)
 - **Arduino** (optional — only for physical servo control)
 
-### Installation
+### Quick Launch (Windows)
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/kyma.git
 cd kyma
+```
+
+Double-click **`KYMA.bat`** — it handles everything automatically:
+- Creates a virtual environment
+- Installs all dependencies (first run only)
+- Starts the server
+- Opens KYMA in a native desktop window
+
+### Manual Setup
+
+```bash
 pip install -r requirements.txt
 ```
 
