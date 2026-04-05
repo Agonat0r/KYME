@@ -1,0 +1,55 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+venv/
+.venv/
+env/
+.env
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# ─── Models (large binaries — tracked separately or via LFS) ─────────────────
+models/*.pkl
+models/*.pt
+models/*.pth
+models/*.onnx
+server/models/*.pkl
+server/models/*.pt
+server/models/*.pth
+server/models/*.onnx
+
+# ─── Sessions (user-recorded data — not for repo) ────────────────────────────
+sessions/
+server/sessions/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Node (if dashboard ever gets a build step) ──────────────────────────────
+node_modules/
+package-lock.json
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.orig

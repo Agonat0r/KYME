@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYMA</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    /* ===================================================================
+       RESET + CSS VARS
+       nothing fancy, just the basics so every browser starts the same
+       =================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+      --red:       #f85149;
+      --text:      #c9d1d9;
+      --text-dim:  #8b949e;
+      --radius:    8px;
+      --font:      'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===================================================================
+       TOP BAR - always visible, has the estop and theme picker
+       =================================================================== */
+    #topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 16px; background: var(--surface);
+      border-bottom: 2px solid var(--border); flex-shrink: 0; z-index: 10;
+    }
+    #topbar h1 { font-size: 16px; font-weight: 600; font-family: var(--font); }
+    #state-badge {
+      padding: 2px 10px; border-radius: var(--radius);
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      background: #21262d; color: var(--text-dim); font-family: var(--font);
+    }
+    #state-badge.streaming   { background:#0d2d1a; color:var(--green); }
+    #state-badge.training    { background:#2d2000; color:var(--yellow); }
+    #state-badge.calibrating { background:#1f2d3d; color:var(--accent); }
+    #state-badge.estop       { background:#2d0d0d; color:var(--red); }
+
+    /* little dot that goes green when websocket connects */
+    #ws-dot { width:8px; height:8px; border-radius:50%; background:var(--red); }
+    #ws-dot.ok { background:var(--green); }
+
+    .spacer { flex:1; }
+
+    #theme-select {
+      background:#21262d; color:var(--text); border:1px solid var(--border);
+      border-radius:4px; padding:3px 8px; font-size:12px; cursor:pointer;
+      font-family:var(--font);
+    }
+    /* big red panic button, always in sight */
+    #btn-estop {
+      padding:6px 20px; background:var(--red); color:#fff; border:none;
+      border-radius:var(--radius); font-size:14px; font-weight:700;
+      cursor:pointer; letter-spacing:1px; font-family:var(--font);
+    }
+
+    /* ===================================================================
+       MAIN 3-COLUMN LAYOUT
+       left panel = controls, center = emg + 3d arm, right = readouts
+       =================================================================== */
+    #main {
+      display:grid; grid-template-columns:220px 5px 1fr 5px 240px;
+      flex:1; min-height:0; overflow:hidden;
+    }
+    @media (max-width:900px) {
+      #main { grid-template-columns:180px 5px 1fr 5px 180px; }
+    }
+    @media (max-width:700px) {
+      #main { grid-template-columns:1fr; grid-template-rows:auto 1fr auto; }
+      #main .resize-handle-h { display:none; }
+    }
+    .panel {
+      background:var(--surface); border-right:1px solid var(--border);
+      overflow-y:auto; padding:12px;
+      display:flex; flex-direction:column; gap:12px;
+    }
+    .panel:last-child { border-right:none; border-left:1px solid var(--border); }
+    .card {
+      background:var(--bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:10px 12px;
+    }
+    .card h3 {
+      font-size:11px; text-transform:uppercase; letter-spacing:.6px;
+      color:var(--text-dim); margin-bottom:8px; font-family:var(--font);
+    }
+
+    /* ===================================================================
+       CENTER COLUMN - has the emg waveform and 3d arm stacked vertically
+       =================================================================== */
+    #center { display:flex; flex-direction:column; overflow:hidden; }
+
+    #emg-header {
+      padding:6px 16px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:12px; flex-shrink:0;
+    }
+    #emg-header span { font-size:12px; color:var(--text-dim); }
+
+    /* emg waveform canvas - takes top 55% of center */
+    #canvas-container { flex:3; position:relative; overflow:hidden; min-height:0; }
+    #emg-canvas { display:block; width:100%; height:100%; }
+
+    #channel-legend {
+      display:flex; flex-wrap:wrap; gap:8px; padding:4px 16px;
+      border-top:1px solid var(--border); flex-shrink:0;
+    }
+    .ch-label { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-dim); }
+    .ch-dot { width:8px; height:8px; border-radius:50%; }
+
+    /* 3d arm viewport - takes bottom 45% of center */
+    #arm-section {
+      flex:2; position:relative; overflow:hidden; min-height:200px;
+      border-top:1px solid var(--border);
+    }
+    #arm-container {
+      width:100%; height:100%;
+      /* fallback bg until three.js loads */
+      background: radial-gradient(ellipse at center, #161b22 0%, #0d1117 100%);
+    }
+    /* gesture label floating over the 3d viewport */
+    #arm-gesture-label {
+      position:absolute; top:8px; left:12px;
+      font-size:11px; color:var(--text-dim); font-family:var(--font);
+      text-transform:uppercase; letter-spacing:.5px;
+      pointer-events:none;
+    }
+    #arm-gesture-name {
+      color:var(--accent); font-weight:700; font-size:14px;
+    }
+
+    /* ===================================================================
+       PIPELINE DIAGRAM (collapsible)
+       sits between the arm and the bottom, shows the data flow
+       =================================================================== */
+    #pipeline-section {
+      border-top:1px solid var(--border); flex-shrink:0;
+      max-height:0; overflow:hidden; transition:max-height .3s ease;
+    }
+    #pipeline-section.open { max-height:400px; overflow-y:auto; }
+    #pipeline-toggle {
+      display:flex; align-items:center; justify-content:center;
+      padding:4px; border-top:1px solid var(--border);
+      cursor:pointer; font-size:11px; color:var(--text-dim);
+      background:var(--surface); flex-shrink:0; user-select:none;
+    }
+    #pipeline-toggle:hover { color:var(--accent); }
+
+    /* ===================================================================
+       RESIZE HANDLES — thin draggable bars between panels
+       =================================================================== */
+    .resize-handle-h {
+      width:5px; cursor:col-resize; background:var(--border);
+      transition:background .15s; flex-shrink:0; z-index:5;
+      touch-action:none;
+    }
+    .resize-handle-h:hover, .resize-handle-h.active { background:var(--accent); }
+    .resize-handle-v {
+      height:5px; cursor:row-resize; background:var(--border);
+      transition:background .15s; flex-shrink:0; z-index:5;
+      touch-action:none;
+    }
+    .resize-handle-v:hover, .resize-handle-v.active { background:var(--accent); }
+    body.resizing { cursor:col-resize !important; user-select:none !important; }
+    body.resizing-v { cursor:row-resize !important; user-select:none !important; }
+
+    /* ===================================================================
+       DRAG GHOST — floating block clone during palette drag
+       =================================================================== */
+    .drag-ghost {
+      position:fixed; z-index:10000; pointer-events:none;
+      padding:8px 14px; border-radius:var(--radius);
+      border:2px solid var(--accent); background:var(--surface);
+      font-size:11px; font-weight:600; font-family:var(--font);
+      color:var(--text); opacity:.9; box-shadow:0 4px 16px rgba(0,0,0,.5);
+      display:flex; align-items:center; gap:6px;
+      white-space:nowrap;
+    }
+    .drag-ghost .block-icon {
+      width:12px; height:12px; border-radius:3px; flex-shrink:0;
+    }
+    #workspace-dropzone.drag-hover {
+      outline:2px dashed var(--accent);
+      outline-offset:-4px;
+    }
+
+    .pipe-flow {
+      display:flex; align-items:stretch; gap:0; padding:14px;
+      overflow-x:auto; justify-content:center;
+    }
+    .pipe-block {
+      background:var(--surface); border:2px solid var(--accent);
+      border-radius:var(--radius); padding:8px 12px; min-width:110px;
+      text-align:center; font-size:10px;
+    }
+    .pipe-block h4 { color:var(--accent); font-size:9px; margin-bottom:4px; text-transform:uppercase; }
+    .pipe-block p  { color:var(--text-dim); font-size:9px; line-height:1.4; }
+    .pipe-arrow {
+      display:flex; align-items:center; justify-content:center;
+      color:var(--accent); font-size:16px; padding:0 4px; font-weight:700;
+    }
+    .pipe-table {
+      width:calc(100% - 32px); border-collapse:collapse; font-size:10px;
+      margin:6px 16px 14px;
+    }
+    .pipe-table th {
+      background:var(--surface); color:var(--accent); padding:5px 8px;
+      border:1px solid var(--border); text-align:left;
+      text-transform:uppercase; font-size:8px; letter-spacing:.4px;
+    }
+    .pipe-table td { padding:4px 8px; border:1px solid var(--border); color:var(--text-dim); }
+    .pipe-table tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
+
+    /* ===================================================================
+       BUTTONS - reusable classes for all the controls
+       =================================================================== */
+    .btn {
+      padding:6px 12px; border-radius:var(--radius); border:1px solid var(--border);
+      background:#21262d; color:var(--text); cursor:pointer; font-size:13px;
+      width:100%; text-align:center; transition:background .15s; font-family:var(--font);
+    }
+    .btn:hover { background:#30363d; }
+    .btn.primary { background:var(--accent); color:#000; border-color:var(--accent); }
+    .btn.danger  { background:#2d0d0d; color:var(--red); border-color:#5c1a1a; }
+    .btn.success { background:#0d2d1a; color:var(--green); border-color:#1a5c36; }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+
+    /* gesture training row */
+    .gesture-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+    .gesture-row .name { flex:1; font-size:13px; text-transform:capitalize; }
+    .gesture-row .count { font-size:11px; color:var(--text-dim); min-width:40px; text-align:right; }
+    .btn-rec {
+      padding:3px 10px; border-radius:var(--radius); border:1px solid var(--border);
+      background:#21262d; color:var(--text); cursor:pointer; font-size:12px;
+      font-family:var(--font);
+    }
+    /* blinks red while recording */
+    .btn-rec.active { background:var(--red); color:#fff; border-color:var(--red); animation:pulse-rec .6s infinite; }
+    @keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* prediction display */
+    #pred-gesture {
+      font-size:28px; font-weight:700; text-transform:capitalize;
+      color:var(--accent); margin-bottom:4px; font-family:var(--font);
+    }
+    #pred-gesture.bounce { animation:bounce-pred .3s ease; }
+    @keyframes bounce-pred { 0%{transform:scale(1)} 40%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    #pred-confidence { font-size:13px; color:var(--text-dim); margin-bottom:6px; }
+    #conf-bar-bg { height:6px; background:var(--border); border-radius:var(--radius); overflow:hidden; }
+    #conf-bar { height:100%; background:var(--green); width:0%; transition:width .2s, background .2s; border-radius:var(--radius); }
+
+    /* per-channel rms bars */
+    .rms-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+    .rms-label { width:28px; font-size:11px; color:var(--text-dim); }
+    .rms-bar-bg { flex:1; height:8px; background:var(--border); border-radius:var(--radius); overflow:hidden; }
+    .rms-bar { height:100%; width:0%; border-radius:var(--radius); transition:width .15s; }
+    .rms-val { width:46px; text-align:right; font-size:10px; color:var(--text-dim); }
+
+    /* calibration log textarea */
+    #cal-log {
+      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+      padding:6px; font-family:monospace; font-size:11px;
+      height:90px; overflow-y:auto; color:var(--text-dim);
+    }
+    /* manual servo sliders */
+    .servo-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+    .servo-row label { width:24px; font-size:11px; }
+    .servo-row input[type=range] { flex:1; accent-color:var(--accent); }
+    .servo-row .angle-val { width:30px; text-align:right; font-size:11px; color:var(--text-dim); }
+
+    /* saved session entries */
+    .session-item {
+      padding:5px 8px; border:1px solid var(--border); border-radius:var(--radius);
+      font-size:11px; color:var(--text-dim); margin-bottom:3px;
+    }
+    .session-item .sid { color:var(--text); font-weight:600; }
+
+    /* floating notifications */
+    #toast {
+      position:fixed; bottom:24px; right:24px; padding:10px 18px;
+      border-radius:var(--radius); background:#21262d; border:1px solid var(--border);
+      font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none;
+      z-index:999; font-family:var(--font);
+    }
+    #toast.show { opacity:1; }
+
+    /* signal quality grid blocks */
+    .q-block {
+      padding:4px; text-align:center; font-size:9px;
+      border-radius:var(--radius); font-family:var(--font);
+      border:1px solid var(--border); transition:background .3s;
+    }
+    .q-block.good { background:#0d2d1a; color:var(--green); }
+    .q-block.ok   { background:#2d2000; color:var(--yellow); }
+    .q-block.bad  { background:#2d0d0d; color:var(--red); }
+    .q-block.dead { background:#1a1a1a; color:var(--text-dim); }
+    body.mario .q-block { border-radius:0; border:2px solid #000; }
+
+    /* classifier dropdown */
+    #clf-select {
+      background:#21262d; color:var(--text); border:1px solid var(--border);
+      border-radius:var(--radius); padding:4px 8px; font-size:12px;
+      width:100%; margin-bottom:6px; font-family:var(--font);
+    }
+
+    /* ===================================================================
+       RETRO THEME overrides
+       green phosphor terminal vibes, CRT scanlines, pixel fonts
+       =================================================================== */
+    body.retro #canvas-container::after {
+      content:''; position:absolute; inset:0;
+      background:repeating-linear-gradient(transparent 0px, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+      pointer-events:none; z-index:1;
+    }
+    body.retro .card {
+      border-width:2px; border-style:double; border-color:var(--accent);
+      box-shadow: 0 0 8px rgba(0,255,0,0.1), inset 0 0 20px rgba(0,255,0,0.03);
+    }
+    body.retro .btn, body.retro .btn-rec, body.retro #btn-estop,
+    body.retro #state-badge, body.retro #theme-select, body.retro #clf-select {
+      border-radius:0; text-transform:uppercase;
+    }
+    body.retro .pipe-block { box-shadow:0 0 10px rgba(0,255,0,0.15); }
+    body.retro #arm-container { background:radial-gradient(ellipse at center, #001a00 0%, #000 100%); }
+
+    /* ===================================================================
+       MARIO / NES THEME overrides
+       brick textures via CSS patterns, chunky shadows, warm palette
+       =================================================================== */
+    body.mario .card {
+      border:3px solid #000; box-shadow:4px 4px 0 #000;
+      /* brick texture pattern using repeating gradients */
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px, transparent 28px, rgba(0,0,0,0.15) 28px, rgba(0,0,0,0.15) 30px
+        ),
+        repeating-linear-gradient(
+          0deg,
+          transparent 0px, transparent 13px, rgba(0,0,0,0.12) 13px, rgba(0,0,0,0.12) 15px
+        ),
+        linear-gradient(135deg, #8c5400 0%, #6b3f00 100%);
+    }
+    body.mario .panel {
+      /* darker brick background for the side panels */
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px, transparent 28px, rgba(0,0,0,0.08) 28px, rgba(0,0,0,0.08) 30px
+        ),
+        repeating-linear-gradient(
+          0deg,
+          transparent 0px, transparent 13px, rgba(0,0,0,0.06) 13px, rgba(0,0,0,0.06) 15px
+        ),
+        var(--surface);
+    }
+    body.mario .btn {
+      box-shadow:2px 2px 0 #000; border-radius:0;
+      border:2px solid #000; text-transform:uppercase;
+    }
+    body.mario .btn.primary { background:var(--green); color:#fff; }
+    body.mario .btn.danger  { background:var(--red); color:#fff; border-color:#000; }
+    body.mario .btn.success { background:var(--yellow); color:#000; border-color:#000; }
+    body.mario .btn-rec { border-radius:0; border:2px solid #000; }
+    body.mario #btn-estop {
+      box-shadow:3px 3px 0 #000; border-radius:0;
+      border:3px solid #000;
+    }
+    body.mario #topbar {
+      border-bottom:4px solid #000;
+      /* repeating question block pattern */
+      background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 18px, rgba(0,0,0,0.05) 18px, rgba(0,0,0,0.05) 20px),
+        var(--red);
+    }
+    body.mario #state-badge, body.mario #theme-select, body.mario #clf-select {
+      border-radius:0; border:2px solid #000;
+    }
+    body.mario .pipe-block { box-shadow:3px 3px 0 #000; border-color:var(--yellow); border-radius:0; }
+    body.mario .pipe-arrow { color:var(--yellow); }
+    body.mario #arm-container { background:radial-gradient(ellipse at center, #000040 0%, #000020 100%); }
+    body.mario #pred-gesture.bounce { animation:mario-bump .25s ease; }
+    body.mario #conf-bar-bg, body.mario #conf-bar,
+    body.mario .rms-bar-bg, body.mario .rms-bar { border-radius:0; }
+    body.mario #toast { border-radius:0; border:2px solid #000; box-shadow:3px 3px 0 #000; }
+    @keyframes mario-bump {
+      0%{transform:translateY(0)} 30%{transform:translateY(-8px) scale(1.1)}
+      60%{transform:translateY(-3px)} 100%{transform:translateY(0)}
+    }
+
+    /* ===================================================================
+       GAMEBOY THEME — DMG-01 green LCD palette
+       that unmistakable 4-shade green from 1989
+       =================================================================== */
+    body.gameboy .card {
+      border:2px solid #0f380f; border-radius:0;
+      box-shadow:2px 2px 0 #0f380f;
+    }
+    body.gameboy .btn, body.gameboy .btn-rec, body.gameboy #btn-estop,
+    body.gameboy #state-badge, body.gameboy #theme-select, body.gameboy #clf-select {
+      border-radius:0; border:2px solid #0f380f;
+    }
+    body.gameboy #btn-estop { box-shadow:2px 2px 0 #0f380f; }
+    body.gameboy #topbar { border-bottom:3px solid #0f380f; }
+    body.gameboy .pipe-block { border-radius:0; border-color:#306230; box-shadow:2px 2px 0 #0f380f; }
+    body.gameboy #arm-container { background:#0f380f; }
+    body.gameboy .q-block { border-radius:0; border:2px solid #0f380f; }
+    body.gameboy #conf-bar-bg, body.gameboy #conf-bar,
+    body.gameboy .rms-bar-bg, body.gameboy .rms-bar { border-radius:0; }
+    body.gameboy #toast { border-radius:0; border:2px solid #0f380f; box-shadow:2px 2px 0 #0f380f; }
+    /* scanline effect across entire viewport for that LCD feel */
+    body.gameboy::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+      background:repeating-linear-gradient(transparent 0px, transparent 1px, rgba(15,56,15,0.06) 1px, rgba(15,56,15,0.06) 2px);
+    }
+
+    /* ===================================================================
+       CYBERPUNK THEME — neon pink/cyan on dark
+       =================================================================== */
+    body.cyberpunk .card {
+      border:1px solid #ff2d95; border-radius:2px;
+      box-shadow:0 0 8px rgba(255,45,149,0.2), inset 0 0 12px rgba(0,255,255,0.03);
+    }
+    body.cyberpunk .btn, body.cyberpunk .btn-rec {
+      border-radius:2px; text-transform:uppercase;
+      border:1px solid #ff2d95;
+    }
+    body.cyberpunk .btn.primary { background:#ff2d95; color:#000; border-color:#ff2d95; }
+    body.cyberpunk #btn-estop {
+      box-shadow:0 0 12px rgba(255,45,149,0.5); border-radius:2px;
+    }
+    body.cyberpunk #topbar { border-bottom:2px solid #ff2d95; }
+    body.cyberpunk .pipe-block { border-color:#00ffff; box-shadow:0 0 10px rgba(0,255,255,0.2); border-radius:2px; }
+    body.cyberpunk .pipe-arrow { color:#ff2d95; }
+    body.cyberpunk #arm-container { background:radial-gradient(ellipse at center, #1a0020 0%, #0a0010 100%); }
+    body.cyberpunk #state-badge, body.cyberpunk #theme-select, body.cyberpunk #clf-select {
+      border-radius:2px; border:1px solid #ff2d95;
+    }
+    body.cyberpunk .q-block { border-radius:2px; }
+    body.cyberpunk #canvas-container::after {
+      content:''; position:absolute; inset:0;
+      background:repeating-linear-gradient(transparent 0px, transparent 3px, rgba(255,45,149,0.04) 3px, rgba(255,45,149,0.04) 4px);
+      pointer-events:none; z-index:1;
+    }
+    body.cyberpunk #toast { border-radius:2px; border:1px solid #ff2d95; box-shadow:0 0 8px rgba(255,45,149,0.3); }
+
+    /* ===================================================================
+       BLOCK PROGRAMMING EDITOR
+       visual drag-and-drop block programming for Arduino actions
+       =================================================================== */
+    #block-editor {
+      display:none; grid-template-columns:220px 5px 1fr 5px 260px;
+      flex:1; min-height:0; overflow:hidden;
+    }
+    #block-editor.active { display:grid; }
+    #main.hidden { display:none; }
+
+    /* Tab switcher in topbar */
+    .tab-btn { padding:4px 12px; background:transparent; color:var(--text-dim);
+      border:1px solid var(--border); border-radius:var(--radius); cursor:pointer;
+      font-size:12px; font-family:var(--font); transition:all .15s; }
+    .tab-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
+    /* Palette panel */
+    .palette-block {
+      padding:8px 10px; margin-bottom:6px; border-radius:var(--radius);
+      border:2px solid var(--border); background:var(--bg);
+      cursor:grab; user-select:none; font-size:11px; font-weight:600;
+      font-family:var(--font); display:flex; align-items:center; gap:6px;
+      transition:border-color .15s, transform .1s;
+      touch-action:none; /* required for pointer events on touch devices */
+    }
+    .palette-block:hover { border-color:var(--accent); transform:translateX(2px); }
+    .palette-block:active { cursor:grabbing; }
+    .palette-block .block-icon {
+      width:12px; height:12px; border-radius:3px; flex-shrink:0;
+    }
+
+    /* Workspace */
+    #workspace-toolbar {
+      display:flex; align-items:center; gap:6px; padding:8px 12px;
+      border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0;
+    }
+    #workspace-toolbar select { background:var(--bg); color:var(--text);
+      border:1px solid var(--border); border-radius:var(--radius);
+      padding:4px 8px; font-size:12px; font-family:var(--font); flex:1; }
+    #workspace-toolbar .btn { width:auto; padding:4px 10px; font-size:11px; }
+
+    #workspace-area {
+      flex:1; display:flex; flex-direction:column; overflow:hidden;
+      background:var(--surface);
+    }
+
+    /* Node-graph canvas container */
+    #node-canvas-container {
+      flex:1; overflow:hidden; position:relative; cursor:grab;
+      background:
+        repeating-linear-gradient(var(--border) 0px, var(--border) 1px, transparent 1px, transparent 30px),
+        repeating-linear-gradient(90deg, var(--border) 0px, var(--border) 1px, transparent 1px, transparent 30px),
+        var(--bg);
+      background-size:30px 30px;
+    }
+    #node-canvas-container.panning { cursor:grabbing; }
+    #node-canvas-container.drag-hover { outline:2px dashed var(--accent); outline-offset:-4px; }
+
+    #node-canvas {
+      position:absolute; top:0; left:0;
+      width:6000px; height:4000px;
+      transform-origin:0 0;
+    }
+    #wire-svg {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      pointer-events:none; z-index:1;
+    }
+    #wire-svg path { pointer-events:stroke; }
+    .wire-path { fill:none; stroke:var(--text-dim); stroke-width:2; cursor:pointer; }
+    .wire-path:hover { stroke:var(--accent); stroke-width:3; }
+    .wire-path.selected { stroke:var(--red); stroke-width:3; }
+    .wire-temp { fill:none; stroke:var(--accent); stroke-width:2; stroke-dasharray:6 3; opacity:0.7; }
+
+    /* Node blocks on canvas */
+    .node-block {
+      position:absolute; z-index:2; min-width:140px; max-width:220px;
+      background:var(--surface); border:2px solid var(--border);
+      border-radius:var(--radius); font-family:var(--font); font-size:10px;
+      user-select:none; box-shadow:0 2px 8px rgba(0,0,0,.3);
+      transition:border-color .1s;
+    }
+    .node-block:hover { border-color:var(--accent); }
+    .node-block.selected { border-color:var(--accent); box-shadow:0 0 12px rgba(88,166,255,0.3); }
+    .node-block.running { animation:node-pulse .5s infinite; }
+    @keyframes node-pulse {
+      0%,100%{box-shadow:0 0 6px rgba(63,185,80,0.3)} 50%{box-shadow:0 0 16px rgba(63,185,80,0.6)}
+    }
+
+    .node-header {
+      display:flex; align-items:center; gap:5px; padding:5px 8px;
+      border-radius:6px 6px 0 0; cursor:grab; font-weight:700;
+      text-transform:uppercase; letter-spacing:.4px; font-size:9px; color:#000;
+    }
+    .node-header:active { cursor:grabbing; }
+    .node-delete {
+      margin-left:auto; width:14px; height:14px; display:flex;
+      align-items:center; justify-content:center; cursor:pointer;
+      opacity:0; color:#000; font-size:13px; font-weight:700; transition:opacity .15s;
+    }
+    .node-block:hover .node-delete { opacity:.6; }
+    .node-delete:hover { opacity:1 !important; }
+
+    .node-body { padding:5px 8px; }
+    .node-body label { color:var(--text-dim); display:flex; align-items:center; gap:3px; margin-bottom:2px; }
+    .node-body input, .node-body select {
+      background:var(--bg); color:var(--text); border:1px solid var(--border);
+      border-radius:3px; padding:1px 3px; font-size:10px; font-family:var(--font); width:50px;
+    }
+    .node-body select { width:auto; }
+
+    /* Ports */
+    .node-ports { position:relative; }
+    .node-port {
+      display:flex; align-items:center; gap:4px; padding:2px 8px;
+      font-size:9px; color:var(--text-dim);
+    }
+    .node-port.port-in { flex-direction:row; }
+    .node-port.port-out { flex-direction:row-reverse; }
+    .port-dot {
+      width:10px; height:10px; border-radius:50%;
+      border:2px solid var(--text-dim); background:var(--bg);
+      cursor:crosshair; flex-shrink:0; transition:all .15s;
+      position:relative; z-index:5;
+    }
+    .port-dot:hover { border-color:var(--accent); background:var(--accent); transform:scale(1.3); }
+    .port-dot.connected { background:var(--text-dim); }
+    .port-label { font-size:8px; text-transform:uppercase; letter-spacing:.3px; }
+
+    /* Zoom indicator */
+    #zoom-indicator {
+      position:absolute; bottom:8px; right:8px; font-size:10px;
+      color:var(--text-dim); background:var(--surface); padding:2px 8px;
+      border-radius:var(--radius); border:1px solid var(--border); z-index:5;
+      pointer-events:none;
+    }
+
+    /* 3D arm controls hint */
+    #arm-controls-hint {
+      position:absolute; bottom:6px; right:8px; font-size:9px;
+      color:var(--text-dim); background:rgba(0,0,0,0.5); padding:3px 8px;
+      border-radius:var(--radius); pointer-events:none; z-index:2;
+    }
+
+    /* Gesture mapping rows */
+    .gmap-row {
+      display:flex; align-items:center; gap:6px; margin-bottom:6px;
+      font-size:11px;
+    }
+    .gmap-row .gmap-name {
+      flex:1; text-transform:capitalize; font-weight:600;
+    }
+    .gmap-row select {
+      background:var(--bg); color:var(--text); border:1px solid var(--border);
+      border-radius:var(--radius); padding:3px 6px; font-size:10px;
+      font-family:var(--font); width:120px;
+    }
+
+    /* Execution log */
+    #exec-log {
+      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+      padding:6px; font-family:monospace; font-size:10px; color:var(--text-dim);
+      height:120px; overflow-y:auto;
+    }
+    .exec-line { margin-bottom:1px; }
+    .exec-line.ok { color:var(--green); }
+    .exec-line.err { color:var(--red); }
+    .exec-line.run { color:var(--accent); }
+
+    /* Export code modal */
+    #code-modal {
+      display:none; position:fixed; inset:0; z-index:100;
+      background:rgba(0,0,0,0.7); align-items:center; justify-content:center;
+    }
+    #code-modal.active { display:flex; }
+    #code-modal-inner {
+      background:var(--surface); border:2px solid var(--border); border-radius:var(--radius);
+      width:700px; max-width:90vw; max-height:80vh; display:flex; flex-direction:column;
+    }
+    #code-modal-header {
+      display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border);
+      font-weight:700; font-size:14px;
+    }
+    #code-modal-header .spacer { flex:1; }
+    #code-output {
+      flex:1; background:var(--bg); color:#e6db74; font-family:monospace; font-size:12px;
+      padding:12px; border:none; resize:none; overflow:auto; min-height:300px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ================================================================
+     TOP BAR
+     has: title, ws status dot, state badge, theme picker, home, estop
+     ================================================================ -->
+<div id="topbar">
+  <h1>KYMA</h1>
+  <span id="ws-dot" title="WebSocket status"></span>
+  <span id="state-badge">idle</span>
+  <div style="display:flex;gap:2px;margin-left:12px">
+    <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" id="tab-blocks" onclick="switchTab('blocks')">Blocks</button>
+  </div>
+  <div class="spacer"></div>
+  <select id="theme-select">
+    <option value="dark">DARK</option>
+    <option value="retro">RETRO</option>
+    <option value="mario">MARIO</option>
+    <option value="gameboy">GAMEBOY</option>
+    <option value="cyberpunk">CYBERPUNK</option>
+  </select>
+  <button id="btn-home" class="btn" style="width:auto;padding:6px 14px">HOME</button>
+  <button id="btn-estop">E-STOP</button>
+</div>
+
+<!-- ================================================================
+     3-COLUMN MAIN LAYOUT
+     ================================================================ -->
+<div id="main">
+
+  <!-- LEFT: all the controls -->
+  <div class="panel">
+
+    <!-- stream start/stop + calibrate + record session -->
+    <div class="card">
+      <h3>Stream</h3>
+      <button id="btn-stream" class="btn primary">Start Stream</button>
+      <div style="margin-top:6px;display:flex;gap:6px">
+        <button id="btn-calibrate" class="btn" style="flex:1">Calibrate</button>
+        <button id="btn-record-session" class="btn" style="flex:1">Rec Session</button>
+      </div>
+      <div style="margin-top:6px">
+        <button id="btn-clear-stream" class="btn danger">Clear Stream</button>
+      </div>
+    </div>
+
+    <!-- classifier picker + per-gesture recording buttons + fit/clear -->
+    <div class="card">
+      <h3>Training</h3>
+      <select id="clf-select">
+        <option value="LDA">LDA (fast, feature-based)</option>
+        <option value="TCN">TCN (temporal CNN, PyTorch)</option>
+        <option value="Mamba">Mamba (state space, PyTorch)</option>
+      </select>
+      <div id="gesture-list"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button id="btn-fit" class="btn success" style="flex:1">Train Model</button>
+        <button id="btn-clear-train" class="btn danger" style="flex:1">Clear</button>
+      </div>
+      <div id="train-status" style="margin-top:6px;font-size:11px;color:var(--text-dim)"></div>
+    </div>
+
+    <!-- calibration steps get printed here in real time -->
+    <div class="card">
+      <h3>Calibration Log</h3>
+      <div id="cal-log">--</div>
+    </div>
+
+    <!-- past sessions from disk -->
+    <div class="card">
+      <h3>Sessions</h3>
+      <div id="session-list" style="max-height:100px;overflow-y:auto"></div>
+      <button id="btn-sessions-refresh" class="btn" style="margin-top:6px">Refresh</button>
+    </div>
+  </div>
+
+  <div class="resize-handle-h" data-resize="main-left"></div>
+
+  <!-- CENTER: emg waveforms on top, 3d arm on bottom -->
+  <div id="center">
+    <div id="emg-header">
+      <span>LIVE EMG -- 8 channels</span>
+      <span id="fps-label" style="margin-left:auto">0 fps</span>
+    </div>
+    <div id="canvas-container">
+      <canvas id="emg-canvas"></canvas>
+    </div>
+    <div id="channel-legend"></div>
+
+    <!-- resize handle between chart and 3D arm -->
+    <div class="resize-handle-v" data-resize="center-split"></div>
+
+    <!-- 3d robotic arm viewport -->
+    <div id="arm-section">
+      <div id="arm-container"></div>
+      <div id="arm-controls-hint">🖱 Left=Orbit · Right=Pan · Scroll=Zoom</div>
+      <div id="arm-model-select" style="position:absolute;top:6px;right:8px;z-index:3">
+        <select id="model-select" style="background:rgba(0,0,0,.6);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:2px 6px;font-size:9px;font-family:var(--font)">
+          <option value="industrial">Industrial 6-Axis</option>
+          <option value="humanoid">Humanoid Hand</option>
+          <option value="mech">Mech Warrior</option>
+          <option value="minimal">Minimal Wire</option>
+          <option value="bionic">Bionic Prosthetic</option>
+        </select>
+      </div>
+      <div id="arm-gesture-label">
+        GESTURE: <span id="arm-gesture-name">--</span>
+      </div>
+    </div>
+
+    <!-- collapsible pipeline diagram -->
+    <div id="pipeline-toggle" onclick="togglePipeline()">PIPELINE DIAGRAM [click to expand]</div>
+    <div id="pipeline-section">
+      <div class="pipe-flow">
+        <div class="pipe-block"><h4>Electrodes</h4><p>8-ch sEMG<br>Ring placement<br>250 Hz</p></div>
+        <div class="pipe-arrow">&gt;</div>
+        <div class="pipe-block"><h4>BrainFlow</h4><p>Bandpass 20-500Hz<br>Notch 50/60Hz<br>Detrend</p></div>
+        <div class="pipe-arrow">&gt;</div>
+        <div class="pipe-block"><h4>Windowing</h4><p>200ms window<br>50ms step<br>75% overlap</p></div>
+        <div class="pipe-arrow">&gt;</div>
+        <div class="pipe-block"><h4>Features</h4><p>LDA: MAV,RMS,WL<br>ZC,SSC (40-dim)<br>TCN/Mamba: raw</p></div>
+        <div class="pipe-arrow">&gt;</div>
+        <div class="pipe-block"><h4>Classifier</h4><p>LDA / TCN /<br>Mamba SSM<br>-&gt; gesture</p></div>
+        <div class="pipe-arrow">&gt;</div>
+        <div class="pipe-block"><h4>Arduino</h4><p>Binary protocol<br>8 Servos<br>Pins 2-9</p></div>
+      </div>
+      <table class="pipe-table">
+        <thead><tr>
+          <th>Classifier</th><th>Params</th><th>Inference</th><th>Accuracy</th><th>Min Data</th><th>Best For</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="color:var(--green)">LDA</td><td>~200</td><td>&lt;1ms</td><td>80-90%</td><td>50 win/gesture</td><td>Fast prototyping</td></tr>
+          <tr><td style="color:var(--accent)">TCN</td><td>~100K</td><td>2-5ms</td><td>90-96%</td><td>200+ win/gesture</td><td>Real-time accuracy</td></tr>
+          <tr><td style="color:var(--yellow)">Mamba</td><td>~50K</td><td>3-8ms</td><td>92-97%</td><td>200+ win/gesture</td><td>Temporal patterns</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="resize-handle-h" data-resize="main-right"></div>
+
+  <!-- RIGHT: everything readout -->
+  <div class="panel">
+    <!-- live prediction with animated label -->
+    <div class="card">
+      <h3>Prediction</h3>
+      <div id="pred-gesture">--</div>
+      <div id="pred-confidence">Confidence: --</div>
+      <div id="conf-bar-bg"><div id="conf-bar"></div></div>
+    </div>
+
+    <!-- per-channel signal strength bars -->
+    <div class="card">
+      <h3>RMS per Channel</h3>
+      <div id="rms-bars"></div>
+    </div>
+
+    <!-- muscle fatigue tracker: watches RMS drop over time -->
+    <div class="card">
+      <h3>Fatigue Monitor</h3>
+      <div id="fatigue-bar-bg" style="height:10px;background:var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:4px">
+        <div id="fatigue-bar" style="height:100%;width:100%;background:var(--green);transition:width .5s,background .5s;border-radius:var(--radius)"></div>
+      </div>
+      <div id="fatigue-label" style="font-size:10px;color:var(--text-dim)">Endurance: 100% -- no fatigue detected</div>
+    </div>
+
+    <!-- gesture history timeline: shows last N predictions as colored blocks -->
+    <div class="card">
+      <h3>Gesture Timeline</h3>
+      <canvas id="timeline-canvas" width="240" height="32" style="width:100%;height:32px;border-radius:var(--radius)"></canvas>
+      <div id="timeline-label" style="font-size:9px;color:var(--text-dim);margin-top:3px">Last 60 predictions</div>
+    </div>
+
+    <!-- signal quality heatmap: 8 blocks showing electrode health -->
+    <div class="card">
+      <h3>Signal Quality</h3>
+      <div id="quality-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px"></div>
+    </div>
+
+    <!-- latency readout -->
+    <div class="card">
+      <h3>Performance</h3>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim)">
+        <span>WS Latency</span><span id="latency-val">-- ms</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+        <span>Predictions/s</span><span id="pred-rate">0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+        <span>Windows buf</span><span id="win-count">0</span>
+      </div>
+    </div>
+
+    <!-- proportional EMG control (no training needed) -->
+    <div class="card">
+      <h3>Proportional Control</h3>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;margin-bottom:6px">
+        <input type="checkbox" id="chk-proportional"> Enable (bypasses classifier)
+      </label>
+
+      <!-- channel-to-joint mapping list -->
+      <div id="prop-mappings" style="font-size:10px;margin-bottom:6px"></div>
+
+      <!-- add new mapping row -->
+      <div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <select id="prop-add-ch" style="font-size:10px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px">
+          <option value="0">CH1</option><option value="1">CH2</option>
+          <option value="2">CH3</option><option value="3">CH4</option>
+          <option value="4">CH5</option><option value="5">CH6</option>
+          <option value="6">CH7</option><option value="7">CH8</option>
+        </select>
+        <span style="color:var(--text-dim);font-size:10px">&rarr;</span>
+        <select id="prop-add-joint" style="font-size:10px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px">
+          <option value="0">Shoulder Rot</option>
+          <option value="1">Shoulder Pitch</option>
+          <option value="2" selected>Elbow</option>
+          <option value="3">Wrist Pitch</option>
+          <option value="4">Wrist Roll</option>
+          <option value="5">Thumb</option>
+          <option value="6">Index</option>
+          <option value="7">Middle</option>
+          <option value="8">Ring</option>
+          <option value="9">Pinky</option>
+          <option value="10">Forearm Rot</option>
+          <option value="11">Grip</option>
+        </select>
+        <select id="prop-add-dir" style="font-size:10px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px">
+          <option value="1">+ (flex)</option>
+          <option value="-1">&minus; (extend)</option>
+        </select>
+        <button id="prop-add-btn" style="font-size:10px;padding:2px 8px;background:var(--green);color:#000;border:none;border-radius:3px;cursor:pointer">Add</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim)">
+        <span>Gain:</span>
+        <input type="range" id="prop-gain" min="1" max="10" value="3" style="flex:1;height:14px">
+        <span id="prop-gain-val">3x</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim);margin-top:3px">
+        <span>Dead zone:</span>
+        <input type="range" id="prop-deadzone" min="5" max="50" value="15" style="flex:1;height:14px">
+        <span id="prop-dz-val">15&micro;V</span>
+      </div>
+    </div>
+
+    <!-- manual servo sliders + 3d arm control -->
+    <div class="card">
+      <h3>Manual Servos</h3>
+      <div id="servo-sliders"></div>
+    </div>
+
+    <!-- named gesture buttons for manual testing -->
+    <div class="card">
+      <h3>Quick Gestures</h3>
+      <div id="quick-gestures" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <!-- sound toggle -->
+    <div class="card">
+      <h3>Options</h3>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer">
+        <input type="checkbox" id="chk-sound"> Sound on gesture change
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     BLOCK PROGRAMMING EDITOR
+     visual drag-and-drop programming for custom Arduino actions
+     ================================================================ -->
+<div id="block-editor">
+
+  <!-- Left: Block Palette -->
+  <div class="panel">
+    <div class="card">
+      <h3>Action Blocks</h3>
+      <div class="palette-block" draggable="true" data-type="servo_move">
+        <span class="block-icon" style="background:#58a6ff"></span> Servo Move
+      </div>
+      <div class="palette-block" draggable="true" data-type="servo_sweep">
+        <span class="block-icon" style="background:#58c6ff"></span> Servo Sweep
+      </div>
+      <div class="palette-block" draggable="true" data-type="delay">
+        <span class="block-icon" style="background:#d29922"></span> Delay
+      </div>
+      <div class="palette-block" draggable="true" data-type="digital_write">
+        <span class="block-icon" style="background:#3fb950"></span> Digital Write
+      </div>
+      <div class="palette-block" draggable="true" data-type="analog_write">
+        <span class="block-icon" style="background:#bc8cff"></span> Analog Write
+      </div>
+      <div class="palette-block" draggable="true" data-type="tone">
+        <span class="block-icon" style="background:#e6db74"></span> Play Tone
+      </div>
+      <div class="palette-block" draggable="true" data-type="log_msg">
+        <span class="block-icon" style="background:#6272a4"></span> Log Message
+      </div>
+    </div>
+    <div class="card">
+      <h3>Control Blocks</h3>
+      <div class="palette-block" draggable="true" data-type="loop">
+        <span class="block-icon" style="background:#ffa657"></span> Loop
+      </div>
+      <div class="palette-block" draggable="true" data-type="loop_forever">
+        <span class="block-icon" style="background:#ff8c00"></span> Loop Forever
+      </div>
+      <div class="palette-block" draggable="true" data-type="if_rms">
+        <span class="block-icon" style="background:#79c0ff"></span> If RMS &gt;
+      </div>
+      <div class="palette-block" draggable="true" data-type="if_gesture">
+        <span class="block-icon" style="background:#50e3c2"></span> If Gesture
+      </div>
+      <div class="palette-block" draggable="true" data-type="wait_gesture">
+        <span class="block-icon" style="background:#50fa7b"></span> Wait Gesture
+      </div>
+      <div class="palette-block" draggable="true" data-type="sequence">
+        <span class="block-icon" style="background:#8b949e"></span> Sequence
+      </div>
+    </div>
+    <div class="card">
+      <h3>Presets</h3>
+      <div class="palette-block" draggable="true" data-type="gesture">
+        <span class="block-icon" style="background:#f85149"></span> Run Gesture
+      </div>
+      <div class="palette-block" draggable="true" data-type="set_3d">
+        <span class="block-icon" style="background:#ff79c6"></span> 3D Arm Pose
+      </div>
+    </div>
+  </div>
+
+  <div class="resize-handle-h" data-resize="blocks-left"></div>
+
+  <!-- Center: Workspace -->
+  <div id="workspace-area">
+    <div id="workspace-toolbar">
+      <select id="program-select"></select>
+      <button class="btn" onclick="newProgram()">New</button>
+      <button class="btn" onclick="renameProgram()">Rename</button>
+      <button class="btn danger" onclick="deleteProgram()">Del</button>
+      <div class="spacer"></div>
+      <button class="btn" onclick="exportArduinoCode()" style="background:#e6db74;color:#000">Export .ino</button>
+      <button class="btn success" id="btn-run-prog" onclick="runProgram()">Run</button>
+      <button class="btn danger" id="btn-stop-prog" onclick="stopProgram()">Stop</button>
+    </div>
+    <div id="node-canvas-container">
+      <div id="node-canvas">
+        <svg id="wire-svg"></svg>
+      </div>
+      <div id="zoom-indicator">100%</div>
+    </div>
+  </div>
+
+  <div class="resize-handle-h" data-resize="blocks-right"></div>
+
+  <!-- Right: Gesture Mapping + Config -->
+  <div class="panel">
+    <div class="card">
+      <h3>Gesture &rarr; Program</h3>
+      <p style="font-size:9px;color:var(--text-dim);margin-bottom:6px">
+        Map EMG gestures to run your custom programs
+      </p>
+      <div id="gesture-mapping-list"></div>
+    </div>
+    <div class="card">
+      <h3>Execution Log</h3>
+      <div id="exec-log">Ready.</div>
+      <button class="btn" style="margin-top:4px;font-size:10px" onclick="clearExecLog()">Clear Log</button>
+    </div>
+    <div class="card">
+      <h3>Help</h3>
+      <div id="block-info" style="font-size:10px;color:var(--text-dim);line-height:1.5">
+        <b>Drag</b> blocks from palette onto canvas.<br>
+        <b>Connect</b> ports by dragging from one dot to another.<br>
+        <b>Pan</b>: middle-click drag or hold Space.<br>
+        <b>Zoom</b>: scroll wheel.<br>
+        <b>Delete wire</b>: click wire, press Del.<br>
+        <b>Double-click</b> palette block to quick-add.<br>
+        <b>Export .ino</b> generates Arduino code.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Code Export Modal -->
+<div id="code-modal">
+  <div id="code-modal-inner">
+    <div id="code-modal-header">
+      <span>Generated Arduino Code</span>
+      <div class="spacer"></div>
+      <button class="btn" onclick="copyExportedCode()" style="width:auto;margin-right:6px">Copy</button>
+      <button class="btn success" onclick="downloadExportedCode()" style="width:auto;margin-right:6px">Download .ino</button>
+      <button class="btn danger" onclick="closeCodeModal()" style="width:auto">&times;</button>
+    </div>
+    <textarea id="code-output" readonly></textarea>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Three.js r149 core -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<!-- OrbitControls inlined to avoid CDN ORB blocking issues -->
+<script>
+// Minimal OrbitControls (from three.js r149 examples/js/controls/OrbitControls.js)
+// Inlined because jsdelivr blocks examples/js/ with ERR_BLOCKED_BY_ORB
+(function(){
+if(typeof THREE==='undefined') return;
+const _changeEvent={type:'change'};
+const _startEvent={type:'start'};
+const _endEvent={type:'end'};
+class OrbitControls extends THREE.EventDispatcher{
+constructor(object,domElement){
+super();
+this.object=object;
+this.domElement=domElement;
+this.domElement.style.touchAction='none';
+this.enabled=true;
+this.target=new THREE.Vector3();
+this.minDistance=0;this.maxDistance=Infinity;
+this.minZoom=0;this.maxZoom=Infinity;
+this.minPolarAngle=0;this.maxPolarAngle=Math.PI;
+this.minAzimuthAngle=-Infinity;this.maxAzimuthAngle=Infinity;
+this.enableDamping=false;this.dampingFactor=0.05;
+this.enableZoom=true;this.zoomSpeed=1.0;
+this.enableRotate=true;this.rotateSpeed=1.0;
+this.enablePan=true;this.panSpeed=1.0;
+this.screenSpacePanning=true;this.keyPanSpeed=7.0;
+this.autoRotate=false;this.autoRotateSpeed=2.0;
+this.keys={LEFT:'ArrowLeft',UP:'ArrowUp',RIGHT:'ArrowRight',BOTTOM:'ArrowDown'};
+this.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN};
+this.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};
+this.target0=this.target.clone();
+this.position0=this.object.position.clone();
+this.zoom0=this.object.zoom;
+this._domElementKeyEvents=null;
+const scope=this;
+const STATE={NONE:-1,ROTATE:0,DOLLY:1,PAN:2,TOUCH_ROTATE:3,TOUCH_PAN:4,TOUCH_DOLLY_PAN:5,TOUCH_DOLLY_ROTATE:6};
+let state=STATE.NONE;
+const EPS=0.000001;
+const spherical=new THREE.Spherical();
+const sphericalDelta=new THREE.Spherical();
+let scale=1;const panOffset=new THREE.Vector3();
+let zoomChanged=false;
+const rotateStart=new THREE.Vector2();const rotateEnd=new THREE.Vector2();const rotateDelta=new THREE.Vector2();
+const panStart=new THREE.Vector2();const panEnd=new THREE.Vector2();const panDelta=new THREE.Vector2();
+const dollyStart=new THREE.Vector2();const dollyEnd=new THREE.Vector2();const dollyDelta=new THREE.Vector2();
+const pointers=[];const pointerPositions={};
+this.getPolarAngle=function(){return spherical.phi;};
+this.getAzimuthalAngle=function(){return spherical.theta;};
+this.getDistance=function(){return this.object.position.distanceTo(this.target);};
+this.saveState=function(){scope.target0.copy(scope.target);scope.position0.copy(scope.object.position);scope.zoom0=scope.object.zoom;};
+this.reset=function(){scope.target.copy(scope.target0);scope.object.position.copy(scope.position0);scope.object.zoom=scope.zoom0;scope.object.updateProjectionMatrix();scope.dispatchEvent(_changeEvent);scope.update();state=STATE.NONE;};
+const offset=new THREE.Vector3();
+const quat=new THREE.Quaternion().setFromUnitVectors(object.up,new THREE.Vector3(0,1,0));
+const quatInverse=quat.clone().invert();
+const lastPosition=new THREE.Vector3();const lastQuaternion=new THREE.Quaternion();
+const twoPI=2*Math.PI;
+this.update=function(){
+const position=scope.object.position;
+offset.copy(position).sub(scope.target);
+offset.applyQuaternion(quat);
+spherical.setFromVector3(offset);
+if(scope.autoRotate&&state===STATE.NONE)rotateLeft(getAutoRotationAngle());
+if(scope.enableDamping){
+spherical.theta+=sphericalDelta.theta*scope.dampingFactor;
+spherical.phi+=sphericalDelta.phi*scope.dampingFactor;
+}else{
+spherical.theta+=sphericalDelta.theta;
+spherical.phi+=sphericalDelta.phi;
+}
+let min=scope.minAzimuthAngle;let max=scope.maxAzimuthAngle;
+if(isFinite(min)&&isFinite(max)){if(min<-Math.PI)min+=twoPI;else if(min>Math.PI)min-=twoPI;if(max<-Math.PI)max+=twoPI;else if(max>Math.PI)max-=twoPI;if(min<=max)spherical.theta=Math.max(min,Math.min(max,spherical.theta));else spherical.theta=spherical.theta>(min+max)/2?Math.max(min,spherical.theta):Math.min(max,spherical.theta);}
+spherical.phi=Math.max(scope.minPolarAngle,Math.min(scope.maxPolarAngle,spherical.phi));
+spherical.makeSafe();spherical.radius*=scale;
+spherical.radius=Math.max(scope.minDistance,Math.min(scope.maxDistance,spherical.radius));
+if(scope.enableDamping)scope.target.addScaledVector(panOffset,scope.dampingFactor);
+else scope.target.add(panOffset);
+offset.setFromSpherical(spherical);offset.applyQuaternion(quatInverse);
+position.copy(scope.target).add(offset);
+scope.object.lookAt(scope.target);
+if(scope.enableDamping){sphericalDelta.theta*=(1-scope.dampingFactor);sphericalDelta.phi*=(1-scope.dampingFactor);panOffset.multiplyScalar(1-scope.dampingFactor);}
+else{sphericalDelta.set(0,0,0);panOffset.set(0,0,0);}
+scale=1;
+if(zoomChanged||lastPosition.distanceToSquared(scope.object.position)>EPS||8*(1-lastQuaternion.dot(scope.object.quaternion))>EPS){
+scope.dispatchEvent(_changeEvent);lastPosition.copy(scope.object.position);lastQuaternion.copy(scope.object.quaternion);zoomChanged=false;return true;}
+return false;};
+this.dispose=function(){scope.domElement.removeEventListener('contextmenu',onContextMenu);scope.domElement.removeEventListener('pointerdown',onPointerDown);scope.domElement.removeEventListener('pointercancel',onPointerUp);scope.domElement.removeEventListener('wheel',onMouseWheel);scope.domElement.removeEventListener('pointermove',onPointerMove);scope.domElement.removeEventListener('pointerup',onPointerUp);if(scope._domElementKeyEvents!==null)scope._domElementKeyEvents.removeEventListener('keydown',onKeyDown);};
+function getAutoRotationAngle(){return 2*Math.PI/60/60*scope.autoRotateSpeed;}
+function getZoomScale(){return Math.pow(0.95,scope.zoomSpeed);}
+function rotateLeft(angle){sphericalDelta.theta-=angle;}
+function rotateUp(angle){sphericalDelta.phi-=angle;}
+const panLeft=(function(){const v=new THREE.Vector3();return function(distance,objectMatrix){v.setFromMatrixColumn(objectMatrix,0);v.multiplyScalar(-distance);panOffset.add(v);};})();
+const panUp=(function(){const v=new THREE.Vector3();return function(distance,objectMatrix){if(scope.screenSpacePanning)v.setFromMatrixColumn(objectMatrix,1);else{v.setFromMatrixColumn(objectMatrix,0);v.crossVectors(scope.object.up,v);}v.multiplyScalar(distance);panOffset.add(v);};})();
+const pan=(function(){const offset=new THREE.Vector3();return function(deltaX,deltaY){const element=scope.domElement;if(scope.object.isPerspectiveCamera){const position=scope.object.position;offset.copy(position).sub(scope.target);let targetDistance=offset.length();targetDistance*=Math.tan(scope.object.fov/2*Math.PI/180.0);panLeft(2*deltaX*targetDistance/element.clientHeight,scope.object.matrix);panUp(2*deltaY*targetDistance/element.clientHeight,scope.object.matrix);}else if(scope.object.isOrthographicCamera){panLeft(deltaX*(scope.object.right-scope.object.left)/scope.object.zoom/element.clientWidth,scope.object.matrix);panUp(deltaY*(scope.object.top-scope.object.bottom)/scope.object.zoom/element.clientHeight,scope.object.matrix);}};})();
+function dollyOut(dollyScale){if(scope.object.isPerspectiveCamera)scale/=dollyScale;else if(scope.object.isOrthographicCamera){scope.object.zoom=Math.max(scope.minZoom,Math.min(scope.maxZoom,scope.object.zoom*dollyScale));scope.object.updateProjectionMatrix();zoomChanged=true;}}
+function dollyIn(dollyScale){if(scope.object.isPerspectiveCamera)scale*=dollyScale;else if(scope.object.isOrthographicCamera){scope.object.zoom=Math.max(scope.minZoom,Math.min(scope.maxZoom,scope.object.zoom/dollyScale));scope.object.updateProjectionMatrix();zoomChanged=true;}}
+function handleMouseDownRotate(event){rotateStart.set(event.clientX,event.clientY);}
+function handleMouseDownDolly(event){dollyStart.set(event.clientX,event.clientY);}
+function handleMouseDownPan(event){panStart.set(event.clientX,event.clientY);}
+function handleMouseMoveRotate(event){rotateEnd.set(event.clientX,event.clientY);rotateDelta.subVectors(rotateEnd,rotateStart).multiplyScalar(scope.rotateSpeed);const element=scope.domElement;rotateLeft(2*Math.PI*rotateDelta.x/element.clientHeight);rotateUp(2*Math.PI*rotateDelta.y/element.clientHeight);rotateStart.copy(rotateEnd);scope.update();}
+function handleMouseMoveDolly(event){dollyEnd.set(event.clientX,event.clientY);dollyDelta.subVectors(dollyEnd,dollyStart);if(dollyDelta.y>0)dollyOut(getZoomScale());else if(dollyDelta.y<0)dollyIn(getZoomScale());dollyStart.copy(dollyEnd);scope.update();}
+function handleMouseMovePan(event){panEnd.set(event.clientX,event.clientY);panDelta.subVectors(panEnd,panStart).multiplyScalar(scope.panSpeed);pan(panDelta.x,panDelta.y);panStart.copy(panEnd);scope.update();}
+function handleMouseWheel(event){if(event.deltaY<0)dollyIn(getZoomScale());else if(event.deltaY>0)dollyOut(getZoomScale());scope.update();}
+function handleKeyDown(event){let needsUpdate=false;switch(event.code){case scope.keys.UP:pan(0,scope.keyPanSpeed);needsUpdate=true;break;case scope.keys.BOTTOM:pan(0,-scope.keyPanSpeed);needsUpdate=true;break;case scope.keys.LEFT:pan(scope.keyPanSpeed,0);needsUpdate=true;break;case scope.keys.RIGHT:pan(-scope.keyPanSpeed,0);needsUpdate=true;break;}if(needsUpdate){event.preventDefault();scope.update();}}
+function handleTouchStartRotate(){if(pointers.length===1){rotateStart.set(pointers[0].pageX,pointers[0].pageY);}else{const x=0.5*(pointers[0].pageX+pointers[1].pageX);const y=0.5*(pointers[0].pageY+pointers[1].pageY);rotateStart.set(x,y);}}
+function handleTouchStartPan(){if(pointers.length===1){panStart.set(pointers[0].pageX,pointers[0].pageY);}else{const x=0.5*(pointers[0].pageX+pointers[1].pageX);const y=0.5*(pointers[0].pageY+pointers[1].pageY);panStart.set(x,y);}}
+function handleTouchStartDolly(){const dx=pointers[0].pageX-pointers[1].pageX;const dy=pointers[0].pageY-pointers[1].pageY;const distance=Math.sqrt(dx*dx+dy*dy);dollyStart.set(0,distance);}
+function handleTouchStartDollyPan(){if(scope.enableZoom)handleTouchStartDolly();if(scope.enablePan)handleTouchStartPan();}
+function handleTouchStartDollyRotate(){if(scope.enableZoom)handleTouchStartDolly();if(scope.enableRotate)handleTouchStartRotate();}
+function handleTouchMoveRotate(event){if(pointers.length===1){rotateEnd.set(event.pageX,event.pageY);}else{const position=getSecondPointerPosition(event);const x=0.5*(event.pageX+position.x);const y=0.5*(event.pageY+position.y);rotateEnd.set(x,y);}rotateDelta.subVectors(rotateEnd,rotateStart).multiplyScalar(scope.rotateSpeed);const element=scope.domElement;rotateLeft(2*Math.PI*rotateDelta.x/element.clientHeight);rotateUp(2*Math.PI*rotateDelta.y/element.clientHeight);rotateStart.copy(rotateEnd);}
+function handleTouchMovePan(event){if(pointers.length===1){panEnd.set(event.pageX,event.pageY);}else{const position=getSecondPointerPosition(event);const x=0.5*(event.pageX+position.x);const y=0.5*(event.pageY+position.y);panEnd.set(x,y);}panDelta.subVectors(panEnd,panStart).multiplyScalar(scope.panSpeed);pan(panDelta.x,panDelta.y);panStart.copy(panEnd);}
+function handleTouchMoveDolly(event){const position=getSecondPointerPosition(event);const dx=event.pageX-position.x;const dy=event.pageY-position.y;const distance=Math.sqrt(dx*dx+dy*dy);dollyEnd.set(0,distance);dollyDelta.set(0,Math.pow(dollyEnd.y/dollyStart.y,scope.zoomSpeed));dollyOut(dollyDelta.y);dollyStart.copy(dollyEnd);}
+function handleTouchMoveDollyPan(event){if(scope.enableZoom)handleTouchMoveDolly(event);if(scope.enablePan)handleTouchMovePan(event);}
+function handleTouchMoveDollyRotate(event){if(scope.enableZoom)handleTouchMoveDolly(event);if(scope.enableRotate)handleTouchMoveRotate(event);}
+function onPointerDown(event){if(!scope.enabled)return;if(pointers.length===0){scope.domElement.setPointerCapture(event.pointerId);}addPointer(event);if(event.pointerType==='touch'){onTouchStart(event);}else{onMouseDown(event);}}
+function onPointerMove(event){if(!scope.enabled)return;if(event.pointerType==='touch'){onTouchMove(event);}else{onMouseMove(event);}}
+function onPointerUp(event){removePointer(event);if(pointers.length===0){scope.domElement.releasePointerCapture(event.pointerId);}scope.dispatchEvent(_endEvent);state=STATE.NONE;}
+function onMouseDown(event){let mouseAction;switch(event.button){case 0:mouseAction=scope.mouseButtons.LEFT;break;case 1:mouseAction=scope.mouseButtons.MIDDLE;break;case 2:mouseAction=scope.mouseButtons.RIGHT;break;default:mouseAction=-1;}
+switch(mouseAction){case THREE.MOUSE.DOLLY:if(!scope.enableZoom)return;handleMouseDownDolly(event);state=STATE.DOLLY;break;case THREE.MOUSE.ROTATE:if(event.ctrlKey||event.metaKey||event.shiftKey){if(!scope.enablePan)return;handleMouseDownPan(event);state=STATE.PAN;}else{if(!scope.enableRotate)return;handleMouseDownRotate(event);state=STATE.ROTATE;}break;case THREE.MOUSE.PAN:if(event.ctrlKey||event.metaKey||event.shiftKey){if(!scope.enableRotate)return;handleMouseDownRotate(event);state=STATE.ROTATE;}else{if(!scope.enablePan)return;handleMouseDownPan(event);state=STATE.PAN;}break;default:state=STATE.NONE;}
+if(state!==STATE.NONE)scope.dispatchEvent(_startEvent);}
+function onMouseMove(event){switch(state){case STATE.ROTATE:if(!scope.enableRotate)return;handleMouseMoveRotate(event);break;case STATE.DOLLY:if(!scope.enableZoom)return;handleMouseMoveDolly(event);break;case STATE.PAN:if(!scope.enablePan)return;handleMouseMovePan(event);break;}}
+function onMouseWheel(event){if(!scope.enabled||!scope.enableZoom||state!==STATE.NONE)return;event.preventDefault();scope.dispatchEvent(_startEvent);handleMouseWheel(event);scope.dispatchEvent(_endEvent);}
+function onKeyDown(event){if(!scope.enabled||!scope.enablePan)return;handleKeyDown(event);}
+function onTouchStart(event){trackPointer(event);switch(pointers.length){case 1:switch(scope.touches.ONE){case THREE.TOUCH.ROTATE:if(!scope.enableRotate)return;handleTouchStartRotate();state=STATE.TOUCH_ROTATE;break;case THREE.TOUCH.PAN:if(!scope.enablePan)return;handleTouchStartPan();state=STATE.TOUCH_PAN;break;default:state=STATE.NONE;}break;case 2:switch(scope.touches.TWO){case THREE.TOUCH.DOLLY_PAN:if(!scope.enableZoom&&!scope.enablePan)return;handleTouchStartDollyPan();state=STATE.TOUCH_DOLLY_PAN;break;case THREE.TOUCH.DOLLY_ROTATE:if(!scope.enableZoom&&!scope.enableRotate)return;handleTouchStartDollyRotate();state=STATE.TOUCH_DOLLY_ROTATE;break;default:state=STATE.NONE;}break;default:state=STATE.NONE;}if(state!==STATE.NONE)scope.dispatchEvent(_startEvent);}
+function onTouchMove(event){trackPointer(event);switch(state){case STATE.TOUCH_ROTATE:if(!scope.enableRotate)return;handleTouchMoveRotate(event);scope.update();break;case STATE.TOUCH_PAN:if(!scope.enablePan)return;handleTouchMovePan(event);scope.update();break;case STATE.TOUCH_DOLLY_PAN:if(!scope.enableZoom&&!scope.enablePan)return;handleTouchMoveDollyPan(event);scope.update();break;case STATE.TOUCH_DOLLY_ROTATE:if(!scope.enableZoom&&!scope.enableRotate)return;handleTouchMoveDollyRotate(event);scope.update();break;default:state=STATE.NONE;}}
+function onContextMenu(event){if(!scope.enabled)return;event.preventDefault();}
+function addPointer(event){pointers.push(event);}
+function removePointer(event){delete pointerPositions[event.pointerId];for(let i=0;i<pointers.length;i++){if(pointers[i].pointerId==event.pointerId){pointers.splice(i,1);return;}}}
+function trackPointer(event){let position=pointerPositions[event.pointerId];if(position===undefined){position=new THREE.Vector2();pointerPositions[event.pointerId]=position;}position.set(event.pageX,event.pageY);}
+function getSecondPointerPosition(event){const pointer=event.pointerId===pointers[0].pointerId?pointers[1]:pointers[0];return pointerPositions[pointer.pointerId];}
+scope.domElement.addEventListener('contextmenu',onContextMenu);
+scope.domElement.addEventListener('pointerdown',onPointerDown);
+scope.domElement.addEventListener('pointermove',onPointerMove);
+scope.domElement.addEventListener('pointerup',onPointerUp);
+scope.domElement.addEventListener('pointercancel',onPointerUp);
+scope.domElement.addEventListener('wheel',onMouseWheel,{passive:false});
+this.update();
+}
+}
+THREE.OrbitControls=OrbitControls;
+})();
+</script>
+<script src="/static/app.js?v=14"></script>
+</body>
+</html>
