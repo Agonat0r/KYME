@@ -5,7 +5,6 @@ FastAPI + WebSocket backend.
 
 Environment variables
 ─────────────────────
-EMG_MOCK=1          use simulated Cyton + mock Arduino (no hardware needed)
 CYTON_PORT=COMx     override config serial port
 ARDUINO_PORT=COMx   override config arduino port
 PORT=8000           HTTP port
@@ -13,8 +12,7 @@ PORT=8000           HTTP port
 Run
 ───
   cd server
-  python main.py              (real hardware)
-  EMG_MOCK=1 python main.py   (simulation)
+  python main.py
 """
 
 import asyncio
@@ -31,8 +29,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from arduino_bridge import ArduinoBridge, MockArduinoBridge
-from brainflow_stream import CytonStream, SimulatedCytonStream
+from arduino_bridge import ArduinoBridge
+from brainflow_stream import CytonStream
 from calibration import CalibrationManager
 from config import config
 from emg_pipeline import EMGPipeline
@@ -47,8 +45,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-USE_MOCK = os.getenv("EMG_MOCK", "0") == "1"
 
 # ── Application state ─────────────────────────────────────────────────────────
 
@@ -178,8 +174,8 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(_broadcast_worker())
 
     # Create stream and Arduino
-    app_state.stream = SimulatedCytonStream() if USE_MOCK else CytonStream()
-    app_state.arduino = MockArduinoBridge() if USE_MOCK else ArduinoBridge()
+    app_state.stream = CytonStream()
+    app_state.arduino = ArduinoBridge()
 
     # Arduino connect (best-effort; user can reconnect via API)
     app_state.arduino.connect()
@@ -202,8 +198,7 @@ async def lifespan(app: FastAPI):
     if app_state.pipeline.load_model():
         logger.info("Pre-trained model loaded")
 
-    mode = "MOCK" if USE_MOCK else "REAL"
-    logger.info(f"KYMA Server ready [{mode}] — http://{config.host}:{config.server_port}")
+    logger.info(f"KYMA Server ready — http://{config.host}:{config.server_port}")
     yield
 
     # Shutdown
@@ -253,7 +248,7 @@ async def get_status():
         "session_id": app_state.recorder.session_id,
         "last_prediction": app_state.last_prediction,
         "gestures": config.gestures,
-        "mock_mode": USE_MOCK,
+
     }
 
 
@@ -270,7 +265,7 @@ async def get_config():
         "window_size_ms": config.window_size_ms,
         "window_increment_ms": config.window_increment_ms,
         "confidence_threshold": config.prediction_confidence_threshold,
-        "mock": USE_MOCK,
+
     }
 
 
@@ -292,36 +287,25 @@ async def list_serial_ports():
 
 @app.post("/api/stream/start")
 async def stream_start(req: ConnectRequest = None):
-    logger.info(f"stream_start called: req={req}, current_stream={type(app_state.stream).__name__}, is_running={app_state.stream.is_running}")
-
     # Stop any existing stream first
     if app_state.stream and app_state.stream.is_running:
         app_state.stream.stop()
 
-    # Create the requested stream type (default to mock if not specified)
-    mode = (req.mode if req else None) or ("mock" if USE_MOCK else "real")
-    logger.info(f"stream_start mode={mode!r}")
-
-    if mode == "real":
-        logger.info("Creating real CytonStream")
-        new_stream = CytonStream()
-    else:
-        logger.info("Creating SimulatedCytonStream")
-        new_stream = SimulatedCytonStream()
-
+    # Always create a fresh CytonStream
+    new_stream = CytonStream()
     new_stream.add_window_callback(app_state.pipeline.on_window)
     new_stream.add_window_callback(_on_window_vis)
     app_state.stream = new_stream
 
     port = (req.cyton_port if req else None) or config.serial_port
-    logger.info(f"Connecting stream on port={port}, stream_type={type(app_state.stream).__name__}")
+    logger.info(f"Connecting CytonStream on {port}")
     if not app_state.stream.connect(serial_port=port):
-        raise HTTPException(500, "Failed to connect to Cyton board")
+        raise HTTPException(500, f"Failed to connect to Cyton board on {port}")
     if not app_state.stream.start():
-        raise HTTPException(500, "Failed to start stream")
-    logger.info(f"Stream started successfully: {type(app_state.stream).__name__}")
+        raise HTTPException(500, "Failed to start Cyton stream")
+    logger.info(f"Cyton stream started on {port}")
     app_state.set_state(SystemState.STREAMING)
-    return {"ok": True, "stream_type": type(app_state.stream).__name__}
+    return {"ok": True}
 
 
 @app.post("/api/stream/stop")

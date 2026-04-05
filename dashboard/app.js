@@ -183,7 +183,7 @@ async function boot() {
 
   // grab server state before building the UI
   await loadStatus();
-  await detectMode();
+  await scanPorts();
   buildLegend();
   buildRmsBars();
   buildServos();
@@ -266,24 +266,6 @@ async function scanPorts() {
     toast('Found ' + ports.length + ' port(s)');
   } catch (e) {
     toast('Port scan failed: ' + e.message, 'red');
-  }
-}
-
-async function detectMode() {
-  try {
-    const cfg = await get('/api/config');
-    if (cfg.mock) {
-      $('stream-mode').value = 'mock';
-      $('port-settings').style.display = 'none';
-    } else {
-      $('stream-mode').value = 'real';
-      $('port-settings').style.display = 'block';
-      await scanPorts();
-    }
-  } catch (_) {
-    // Default to real if config unavailable
-    $('stream-mode').value = 'real';
-    $('port-settings').style.display = 'block';
   }
 }
 
@@ -631,13 +613,6 @@ function bindButtons() {
     } catch (e) { toast(e.message, 'red'); }
   };
 
-  // --- mode toggle: show/hide port settings ---
-  $('stream-mode').onchange = () => {
-    const isReal = $('stream-mode').value === 'real';
-    $('port-settings').style.display = isReal ? 'block' : 'none';
-    if (isReal) scanPorts();
-  };
-
   // --- scan serial ports ---
   $('btn-refresh-ports').onclick = () => scanPorts();
 
@@ -647,14 +622,11 @@ function bindButtons() {
       if (S.streaming) {
         await post('/api/stream/stop');
       } else {
-        const mode = $('stream-mode').value;
-        const body = { mode: mode };
-        if (mode === 'real') {
-          const cPort = $('cyton-port').value;
-          if (cPort) body.cyton_port = cPort;
-          const aPort = $('arduino-port').value;
-          if (aPort) body.arduino_port = aPort;
-        }
+        const body = {};
+        const cPort = $('cyton-port').value;
+        if (cPort) body.cyton_port = cPort;
+        const aPort = $('arduino-port').value;
+        if (aPort) body.arduino_port = aPort;
         await post('/api/stream/start', body);
       }
     } catch (e) { toast(e.message, 'red'); }

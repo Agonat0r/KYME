@@ -6,8 +6,8 @@ Opens KYMA in a native desktop window (no browser needed).
 Falls back to browser if pywebview is not installed.
 
 Usage:
-    python launch.py              # mock mode (default, no hardware needed)
-    python launch.py --real       # real Cyton board (select COM port in dashboard)
+    python launch.py              # default (COM8)
+    python launch.py --cyton COM3 # specify Cyton port
     python launch.py --browser    # force browser instead of native window
 """
 import argparse
@@ -48,20 +48,13 @@ def wait_for_server(host, port, timeout=30):
 
 def main():
     parser = argparse.ArgumentParser(description="KYMA Desktop Launcher")
-    parser.add_argument("--real", action="store_true", help="Use real Cyton board (select port in dashboard)")
-    parser.add_argument("--mock", action="store_true", help="Force simulated hardware")
-    parser.add_argument("--cyton", default=None, metavar="PORT")
-    parser.add_argument("--arduino", default=None, metavar="PORT")
+    parser.add_argument("--cyton", default=None, metavar="PORT", help="Cyton COM port (default: COM8)")
+    parser.add_argument("--arduino", default=None, metavar="PORT", help="Arduino COM port")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--browser", action="store_true", help="Open in browser instead of native window")
     args = parser.parse_args()
 
-    # Only set EMG_MOCK if explicitly requested; otherwise let the dashboard UI control it
-    if args.mock:
-        os.environ["EMG_MOCK"] = "1"
-    elif args.real:
-        os.environ["EMG_MOCK"] = "0"
     if args.cyton:
         os.environ["CYTON_PORT"] = args.cyton
     if args.arduino:

@@ -26,7 +26,6 @@ class MoveCommand(BaseModel):
 class ConnectRequest(BaseModel):
     cyton_port: Optional[str] = None
     arduino_port: Optional[str] = None
-    mode: Optional[str] = None  # "mock" or "real"
 
 
 class SessionStartRequest(BaseModel):
