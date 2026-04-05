@@ -3078,27 +3078,44 @@ window.setGestureMapping = function(gesture, programId) {
   saveGestureMap();
 };
 
+// ── Collapsible cards ────────────────────────────────────────────────────────
+
+document.querySelectorAll('.card-collapsible h3').forEach(h3 => {
+  h3.addEventListener('click', () => {
+    h3.parentElement.classList.toggle('collapsed');
+  });
+});
+
 // ── Tab switching ────────────────────────────────────────────────────────────
 
 window.switchTab = function(tab) {
   const main = $('main');
   const editor = $('block-editor');
+  const hwdocs = $('hw-docs');
   const tabDash = $('tab-dashboard');
   const tabBlocks = $('tab-blocks');
+  const tabHwdocs = $('tab-hwdocs');
+
+  // Hide all
+  main.classList.add('hidden');
+  editor.classList.remove('active');
+  hwdocs.classList.remove('active');
+  tabDash.classList.remove('active');
+  tabBlocks.classList.remove('active');
+  tabHwdocs.classList.remove('active');
 
   if (tab === 'blocks') {
-    main.classList.add('hidden');
     editor.classList.add('active');
-    tabDash.classList.remove('active');
     tabBlocks.classList.add('active');
     refreshProgramSelect();
     renderCanvas();
     buildGestureMappingUI();
+  } else if (tab === 'hwdocs') {
+    hwdocs.classList.add('active');
+    tabHwdocs.classList.add('active');
   } else {
     main.classList.remove('hidden');
-    editor.classList.remove('active');
     tabDash.classList.add('active');
-    tabBlocks.classList.remove('active');
   }
 };
 

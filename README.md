@@ -201,16 +201,16 @@ All classifiers include 3× data augmentation (noise injection, amplitude scalin
 
 ## Arduino Firmware
 
-The firmware in `firmware/arm_controller/` implements a minimal binary protocol:
+The firmware in `firmware/arm_controller/` implements a minimal binary protocol over serial at 115200 baud:
 
 | Command | Bytes | Response | Description |
 |---------|-------|----------|-------------|
-| MOVE | `[0x01, joint, angle]` | `[0xAA, joint]` | Set servo angle (0-180°) |
+| MOVE | `[0x01, joint, angle]` | `[0xAA, joint]` | Set servo angle (0-180) |
 | ESTOP | `[0x02]` | `[0xAA, 0x00]` | Emergency stop all servos |
-| HOME | `[0x03]` | `[0xAA, 0x00]` | Return to neutral (90°) |
+| HOME | `[0x03]` | `[0xAA, 0x00]` | Return to neutral (90) |
 | PING | `[0x04]` | `[0xBB, 0x00]` | Heartbeat check |
 
-Flash via Arduino IDE. Servos connect to pins 2-9.
+Flash via Arduino IDE. Servos connect to pins 2-9. Full wiring diagrams, protocol details, and .ino export instructions are available in the **Arduino Guide** tab inside the dashboard.
 
 ---
 
