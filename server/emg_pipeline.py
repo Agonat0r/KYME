@@ -57,9 +57,22 @@ class EMGPipeline:
         self._vote_buffer: collections.deque = collections.deque(maxlen=5)
 
         # ── Adaptive rest detection ──────────────────────────────────
-        # If RMS across all channels is below this, force "rest" class
-        # regardless of classifier output. Prevents phantom gestures at rest.
-        self._rest_rms_threshold: float = 0.003
+        # Per-channel baseline RMS is learned from the first ~2 s of data
+        # while the user is presumed to be sitting still. Activation then
+        # requires MULTIPLE channels to rise well above their own baseline,
+        # which rejects single-channel square-wave / pop artifacts.
+        self._rest_rms_threshold: float = 0.003     # fallback when uncalibrated
+        self._baseline_rms: Optional[np.ndarray] = None   # shape (n_ch,)
+        self._baseline_samples: List[np.ndarray] = []     # collected windows
+        self._baseline_target_windows: int = 40           # ~2 s at 20 Hz emit
+        self._activation_ch_mult: float = 3.0             # ch active if > base * K
+        self._activation_min_channels: int = 2            # need ≥N channels active
+
+        # Hysteresis: avoid flapping between rest/active on borderline windows.
+        self._rest_state: bool = True
+        self._rest_streak: int = 0
+        self._active_streak: int = 0
+        self._dwell_windows: int = 2   # need 2 consecutive windows to change state
 
         Path(config.model_dir).mkdir(exist_ok=True)
 
@@ -92,28 +105,96 @@ class EMGPipeline:
             return
 
         if self._is_trained:
-            # Adaptive rest detection: if signal is too quiet, skip classifier
-            rms_all = float(np.sqrt(np.mean(window ** 2)))
-            if rms_all < self._rest_rms_threshold and "rest" in config.gestures:
+            is_rest = self._is_rest_window(window)
+            if is_rest and "rest" in config.gestures:
                 class_idx = config.gestures.index("rest")
                 confidence = 0.95
+                # Clear vote buffer so we don't carry old active predictions
+                # forward into the next activation — this was a big cause of
+                # the arm latching the same gesture after motion stopped.
+                self._vote_buffer.clear()
             else:
                 class_idx, confidence = self.predict(window)
-
-            # Majority vote smoothing: reduces jitter between gestures
-            self._vote_buffer.append(class_idx)
-            if len(self._vote_buffer) >= 3:
-                counts = collections.Counter(self._vote_buffer)
-                voted_class, voted_count = counts.most_common(1)[0]
-                # Only switch to the voted class if it has majority
-                if voted_count >= len(self._vote_buffer) // 2 + 1:
-                    class_idx = voted_class
+                self._vote_buffer.append(class_idx)
+                if len(self._vote_buffer) >= 3:
+                    counts = collections.Counter(self._vote_buffer)
+                    voted_class, voted_count = counts.most_common(1)[0]
+                    if voted_count >= len(self._vote_buffer) // 2 + 1:
+                        class_idx = voted_class
 
             for fn in self._pred_callbacks:
                 try:
                     fn(class_idx, confidence, window)
                 except Exception as exc:
                     logger.error(f"Prediction callback error: {exc}")
+
+    # ── Rest / activation detection ───────────────────────────────────────
+
+    def _is_rest_window(self, window: np.ndarray) -> bool:
+        """Return True when the window is likely the user sitting still.
+
+        Strategy:
+          1. Compute per-channel RMS.
+          2. Reject any channel whose RMS is wildly above the median (that's
+             a single-channel artifact like a loose electrode or square-wave
+             pop — it should never cause a gesture to fire).
+          3. Compare the *remaining* channels to their learned baseline.
+          4. Rest = too few channels show real activation.
+          5. 2-window hysteresis so borderline windows don't flap.
+        """
+        per_ch_rms = np.sqrt(np.mean(window.astype(np.float64) ** 2, axis=1))
+
+        # Baseline calibration — collect ~2 s of windows at startup.
+        if self._baseline_rms is None:
+            self._baseline_samples.append(per_ch_rms)
+            if len(self._baseline_samples) >= self._baseline_target_windows:
+                arr = np.stack(self._baseline_samples, axis=0)   # (N, n_ch)
+                # 80th-percentile per channel = robust "quiet but not minimum"
+                self._baseline_rms = np.percentile(arr, 80, axis=0)
+                # Floor so a truly dead channel doesn't produce base=0 → always-active
+                floor = max(float(np.median(self._baseline_rms)), 1e-6)
+                self._baseline_rms = np.maximum(self._baseline_rms, floor)
+                logger.info(f"EMG baseline calibrated (µV RMS per ch): "
+                            f"{np.round(self._baseline_rms, 4).tolist()}")
+            return True   # treat calibration window as rest
+
+        # Count channels above their own baseline. Require ≥N so a single
+        # noisy channel (square-wave pop, loose electrode) cannot drive the
+        # arm on its own — real muscle activations light up several channels.
+        thresh = self._baseline_rms * self._activation_ch_mult
+        active = per_ch_rms > thresh
+        n_active = int(active.sum())
+        is_active = n_active >= self._activation_min_channels
+
+        # 5) Hysteresis: need `dwell_windows` in the new state to switch.
+        if is_active:
+            self._active_streak += 1
+            self._rest_streak = 0
+            if not self._rest_state:
+                return False
+            if self._active_streak >= self._dwell_windows:
+                self._rest_state = False
+                return False
+            return True   # still in rest until dwell met
+        else:
+            self._rest_streak += 1
+            self._active_streak = 0
+            if self._rest_state:
+                return True
+            if self._rest_streak >= self._dwell_windows:
+                self._rest_state = True
+                return True
+            return False  # still active until dwell met
+
+    def recalibrate_baseline(self) -> None:
+        """Force a fresh baseline capture (e.g. user pressed 'Calibrate rest')."""
+        self._baseline_rms = None
+        self._baseline_samples = []
+        self._rest_state = True
+        self._rest_streak = 0
+        self._active_streak = 0
+        self._vote_buffer.clear()
+        logger.info("Rest baseline cleared — collecting new calibration...")
 
     # ── Feature extraction (LibEMG) ───────────────────────────────────────
 

@@ -537,12 +537,12 @@ const HAND_POSES = {
 };
 
 const HandView = {
-  _engine: null, _scene: null, _skeleton: null,
-  _thumb: [],      // [metacarpal, proximal, distal]
-  _fingers: [],    // [index, middle, ring, pinky] — each an array of 4 bones
-  _restRot: new Map(),  // bone unique id -> initial local rotation quaternion
-  _curlSign: 1,    // +1 or -1 depending on which direction curls toward palm
-  _curlAxis: 'x',  // detected curl axis
+  _engine: null, _scene: null,
+  _thumb: [],      // array of TransformNodes: [metacarpal, proximal, distal]
+  _fingers: [],    // array of [index, middle, ring, pinky], each 4 TransformNodes
+  _restRot: new Map(),  // node.uniqueId -> initial local rotation quaternion
+  _curlSign: 1,
+  _curlAxis: 'x',
   _last: null,
   _queued: null,
   _booting: false,
@@ -564,16 +564,15 @@ const HandView = {
     this._engine = engine;
     this._scene  = scene;
 
-    // arc-rotate camera — user can drag to look around
+    // arc-rotate camera — target + radius get fitted to the model after import
     const camera = new BABYLON.ArcRotateCamera(
-      'handCam', -Math.PI / 2, Math.PI / 2.4, 0.5,
+      'handCam', -Math.PI / 2, Math.PI / 2.4, 1,
       BABYLON.Vector3.Zero(), scene,
     );
     camera.attachControl(canvas, true);
     camera.wheelDeltaPercentage = 0.02;
-    camera.lowerRadiusLimit = 0.15;
-    camera.upperRadiusLimit = 2.5;
-    camera.minZ = 0.01;
+    camera.minZ = 0.001;
+    this._camera = camera;
 
     // two lights for soft volumetric shading
     const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0.2, 1, 0.3), scene);
@@ -586,37 +585,94 @@ const HandView = {
         '', '/static/assets/', 'hand.glb', scene,
       );
 
-      // Pick the first skeleton with at least 20 joints.
-      const skel = scene.skeletons.find(s => s.bones.length >= 20) || scene.skeletons[0];
-      if (!skel) throw new Error('no skeleton in hand.glb');
-      this._skeleton = skel;
+      // Kill every imported animation group so it can't overwrite our pose.
+      // (The Blender export contains "Armature.003Action" et al. that auto-play.)
+      for (const ag of scene.animationGroups.slice()) {
+        try { ag.stop(); ag.dispose(); } catch (_) {}
+      }
 
-      // Find root bone named "Bone" whose parent is either null or not another "Bone"
-      const root = skel.bones.find(b => b.name === 'Bone');
-      if (!root) throw new Error('root Bone not found');
+      // Hide decorative props; keep only skinned hand meshes.
+      const PROP_NAMES = /^(cube|cylinder|clouds|sphere|circle|plane|light)/i;
+      const handMeshes = [];
+      for (const m of result.meshes) {
+        if (!m.getBoundingInfo) continue;
+        if (m.skeleton) handMeshes.push(m);
+        else if (PROP_NAMES.test(m.name || '')) m.setEnabled(false);
+      }
+      if (handMeshes.length > 1) {
+        const keepSkel = handMeshes[0].skeleton;
+        for (const m of handMeshes) if (m.skeleton !== keepSkel) m.setEnabled(false);
+      }
+      const framed = handMeshes.filter(m => m.isEnabled());
+      this._handMeshes = framed;
+      console.log('[HandView] hand meshes kept:', framed.map(m => m.name),
+                  ' (hidden', result.meshes.length - framed.length, 'props/dupes)');
 
-      // Direct children of root = 5 finger roots
-      const rootChildren = skel.bones.filter(b => b.getParent && b.getParent() === root);
-      const follow = (b) => {
-        const chain = [b];
-        let cur = b;
+      // Frame camera on bbox of the kept hand meshes.
+      let min = null, max = null;
+      for (const m of framed) {
+        m.refreshBoundingInfo(true);
+        const bi = m.getBoundingInfo();
+        const bmin = bi.boundingBox.minimumWorld;
+        const bmax = bi.boundingBox.maximumWorld;
+        if (!isFinite(bmin.x) || !isFinite(bmax.x)) continue;
+        if (!min) { min = bmin.clone(); max = bmax.clone(); continue; }
+        min = BABYLON.Vector3.Minimize(min, bmin);
+        max = BABYLON.Vector3.Maximize(max, bmax);
+      }
+      if (min && max) {
+        const center = min.add(max).scale(0.5);
+        const size = Math.max(max.subtract(min).length(), 0.01);
+        camera.setTarget(center);
+        camera.radius = size * 0.75;
+        camera.lowerRadiusLimit = size * 0.2;
+        camera.upperRadiusLimit = size * 8;
+        camera.panningSensibility = 2000 / size;
+        console.log('[HandView] bbox size:', size.toFixed(3),
+                    ' center:', center.x.toFixed(2), center.y.toFixed(2), center.z.toFixed(2));
+      }
+
+      // ---- TransformNode-based skeleton walk ----
+      // Babylon's glTF loader puts authoritative pose data on TransformNodes
+      // (the glTF joint nodes), not on Bones. We operate on TransformNodes
+      // directly and let the skin follow.
+      const NODE_RX = /^Bone(\.\d+)?$/;
+      const joints = scene.transformNodes.filter(n => NODE_RX.test(n.name || ''));
+      if (!joints.length) throw new Error('no Bone.* transform nodes in hand.glb');
+
+      // Ensure every joint has a rotationQuaternion (so assignment sticks).
+      for (const j of joints) {
+        if (!j.rotationQuaternion) {
+          j.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(
+            j.rotation?.x || 0, j.rotation?.y || 0, j.rotation?.z || 0,
+          );
+        }
+      }
+
+      // Root = node named exactly "Bone" whose parent is NOT another Bone.*
+      const isJoint = (n) => n && NODE_RX.test(n.name || '');
+      const root = joints.find(j => j.name === 'Bone' && !isJoint(j.parent))
+                  || joints.find(j => !isJoint(j.parent));
+      if (!root) throw new Error('root Bone TransformNode not found');
+
+      const childrenOf = (n) => joints.filter(j => j.parent === n);
+      const follow = (n) => {
+        const chain = [n];
+        let cur = n;
         while (true) {
-          const kids = skel.bones.filter(x => x.getParent && x.getParent() === cur);
+          const kids = childrenOf(cur);
           if (kids.length !== 1) break;
           cur = kids[0]; chain.push(cur);
         }
         return chain;
       };
-      const chains = rootChildren.map(follow);
+      const chains = childrenOf(root).map(follow);
 
-      // 3-bone chain = thumb; 4-bone chains = fingers
+      // 3-node chain = thumb; 4-node chains = fingers
       this._thumb = chains.find(c => c.length === 3) || [];
       let fingers = chains.filter(c => c.length === 4);
-      // Sort by world X, then ensure index is the one closest to the thumb
-      fingers.sort((a, b) =>
-        a[0].getAbsolutePosition().x - b[0].getAbsolutePosition().x
-      );
-      if (this._thumb.length) {
+      fingers.sort((a, b) => a[0].getAbsolutePosition().x - b[0].getAbsolutePosition().x);
+      if (this._thumb.length && fingers.length) {
         const thumbX = this._thumb[0].getAbsolutePosition().x;
         const firstX = fingers[0][0].getAbsolutePosition().x;
         const lastX  = fingers[fingers.length - 1][0].getAbsolutePosition().x;
@@ -624,62 +680,63 @@ const HandView = {
       }
       this._fingers = fingers;
 
-      // Snapshot initial local rotation for every bone so we can rebuild from rest each frame.
-      for (const b of skel.bones) {
-        const loc = b.getLocalMatrix();
-        const q = new BABYLON.Quaternion();
-        loc.decompose(undefined, q, undefined);
-        this._restRot.set(b.uniqueId, q);
-      }
+      // Snapshot rest-pose rotation for every joint TransformNode.
+      this._restRot = new Map();
+      for (const j of joints) this._restRot.set(j.uniqueId, j.rotationQuaternion.clone());
 
-      // Detect which local axis curls toward the palm. Rotate the index proximal
-      // bone +45° around X and measure how far its tip moves; compare to Z.
+      // Probe the index proximal node to learn which local axis curls toward
+      // the palm. Force matrix refresh + a render between probes.
       if (this._fingers.length >= 1 && this._fingers[0].length >= 3) {
-        const testBone = this._fingers[0][1]; // proximal phalanx of index
-        const tipBone  = this._fingers[0][this._fingers[0].length - 1];
-        const restQ = this._restRot.get(testBone.uniqueId);
-        const tipRest = tipBone.getAbsolutePosition().clone();
+        const testNode = this._fingers[0][1];
+        const tipNode  = this._fingers[0][this._fingers[0].length - 1];
+        const restQ    = this._restRot.get(testNode.uniqueId);
 
-        const tryAxis = (axis) => {
-          const rot = BABYLON.Quaternion.FromEulerAngles(
-            axis === 'x' ? 0.6 : 0, axis === 'y' ? 0.6 : 0, axis === 'z' ? 0.6 : 0,
-          );
-          testBone.setRotationQuaternion(restQ.multiply(rot), BABYLON.Space.LOCAL);
-          scene.render();  // needed to refresh world matrices
-          const d = tipBone.getAbsolutePosition().subtract(tipRest).length();
-          testBone.setRotationQuaternion(restQ.clone(), BABYLON.Space.LOCAL);
-          return d;
-        };
-        const dx = tryAxis('x'), dz = tryAxis('z'), dy = tryAxis('y');
-        this._curlAxis = (dx >= dz && dx >= dy) ? 'x' : (dz >= dy ? 'z' : 'y');
-
-        // Detect sign: pick the direction where tip Y goes down (curling toward palm).
-        const testPositive = (sign) => {
-          const ang = 0.6 * sign;
-          const rot = BABYLON.Quaternion.FromEulerAngles(
-            this._curlAxis === 'x' ? ang : 0,
-            this._curlAxis === 'y' ? ang : 0,
-            this._curlAxis === 'z' ? ang : 0,
-          );
-          testBone.setRotationQuaternion(restQ.multiply(rot), BABYLON.Space.LOCAL);
+        const setRot = (q) => { testNode.rotationQuaternion = q.clone(); testNode.computeWorldMatrix(true); };
+        const tipWorld = () => { tipNode.computeWorldMatrix(true); return tipNode.getAbsolutePosition().clone(); };
+        const probe = (ax, ay, az) => {
+          setRot(restQ.multiply(BABYLON.Quaternion.FromEulerAngles(ax, ay, az)));
           scene.render();
-          const tip = tipBone.getAbsolutePosition();
-          testBone.setRotationQuaternion(restQ.clone(), BABYLON.Space.LOCAL);
-          return tip.y - tipRest.y;  // more negative = curling downward (toward palm)
+          const p = tipWorld();
+          setRot(restQ);
+          return p;
         };
-        const yPos = testPositive(+1), yNeg = testPositive(-1);
-        this._curlSign = (yNeg < yPos) ? -1 : +1;
+        setRot(restQ); scene.render();
+        const tipRest = tipWorld();
+        const A = 0.8;
+        const candidates = [
+          { axis: 'x', sign: +1, pos: probe( A, 0, 0) },
+          { axis: 'x', sign: -1, pos: probe(-A, 0, 0) },
+          { axis: 'y', sign: +1, pos: probe( 0, A, 0) },
+          { axis: 'y', sign: -1, pos: probe( 0,-A, 0) },
+          { axis: 'z', sign: +1, pos: probe( 0, 0, A) },
+          { axis: 'z', sign: -1, pos: probe( 0, 0,-A) },
+        ];
+        const handCenter = (min && max) ? min.add(max).scale(0.5) : BABYLON.Vector3.Zero();
+        let best = candidates[0], bestScore = -Infinity;
+        for (const c of candidates) {
+          const disp = c.pos.subtract(tipRest);
+          const toCenter = handCenter.subtract(tipRest);
+          const dl = disp.length();
+          if (dl < 1e-6) continue;
+          const tcl = Math.max(toCenter.length(), 1e-6);
+          const dot = (disp.x*toCenter.x + disp.y*toCenter.y + disp.z*toCenter.z) / (dl * tcl);
+          const score = dl * (0.5 + dot);
+          if (score > bestScore) { bestScore = score; best = c; }
+        }
+        this._curlAxis = best.axis;
+        this._curlSign = best.sign;
+        console.log('[HandView] probe: best axis=', best.axis, 'sign=', best.sign,
+                    'displacement=', bestScore.toFixed(4));
       }
 
-      console.log('[HandView] loaded. thumb:', this._thumb.map(b => b.name),
-                  ' fingers:', this._fingers.map(f => f.map(b => b.name)),
+      console.log('[HandView] loaded. thumb:', this._thumb.map(n => n.name),
+                  ' fingers:', this._fingers.map(f => f.map(n => n.name)),
                   ' axis:', this._curlAxis, ' sign:', this._curlSign);
 
       document.getElementById('hand-loading')?.remove();
       engine.runRenderLoop(() => scene.render());
       window.addEventListener('resize', () => engine.resize());
 
-      // apply any gesture that arrived before load finished
       if (this._queued) { const g = this._queued; this._queued = null; this.setGesture(g); }
       else this.setGesture('rest');
     } catch (err) {
@@ -691,9 +748,9 @@ const HandView = {
     }
   },
 
-  _curl(bone, degrees) {
-    if (!bone) return;
-    const restQ = this._restRot.get(bone.uniqueId);
+  _curl(node, degrees) {
+    if (!node) return;
+    const restQ = this._restRot.get(node.uniqueId);
     if (!restQ) return;
     const rad = degrees * Math.PI / 180 * this._curlSign;
     const rot = BABYLON.Quaternion.FromEulerAngles(
@@ -701,21 +758,18 @@ const HandView = {
       this._curlAxis === 'y' ? rad : 0,
       this._curlAxis === 'z' ? rad : 0,
     );
-    bone.setRotationQuaternion(restQ.multiply(rot), BABYLON.Space.LOCAL);
+    node.rotationQuaternion = restQ.multiply(rot);
   },
 
   setGesture(name) {
-    if (!this._scene || !this._skeleton) { this._queued = name; this.init(); return; }
+    if (!this._scene || !this._fingers.length) { this._queued = name; this.init(); return; }
     const pose = HAND_POSES[name] || HAND_POSES.rest;
-    if (name === this._last) return;
     this._last = name;
 
-    // thumb: bones[0]=metacarpal, [1]=proximal, [2]=distal. We curl [1] and [2].
     if (this._thumb.length >= 3) {
       this._curl(this._thumb[1], pose.thumb[0]);
       this._curl(this._thumb[2], pose.thumb[1]);
     }
-    // fingers: bones[0]=metacarpal, [1]=proximal, [2]=middle, [3]=distal.
     for (let i = 0; i < this._fingers.length && i < 4; i++) {
       const arr = pose.fingers[i];
       if (!arr || this._fingers[i].length < 4) continue;
@@ -724,8 +778,47 @@ const HandView = {
       this._curl(this._fingers[i][3], arr[2]);
     }
   },
+
+  // Debug helpers (open DevTools and call e.g. `HandView.cycle()` to see each
+  // gesture land for a second). Also `HandView.setAxis('x', -1)` to override
+  // the auto-detected curl axis if the heuristic picked wrong.
+  cycle(delayMs = 1000) {
+    const seq = ['open','close','pinch','point','rest'];
+    let i = 0;
+    const step = () => {
+      console.log('[HandView] ->', seq[i]);
+      this.setGesture(seq[i]);
+      i = (i + 1) % seq.length;
+    };
+    step();
+    return setInterval(step, delayMs);
+  },
+  setAxis(axis, sign) {
+    this._curlAxis = axis;
+    this._curlSign = sign || 1;
+    console.log('[HandView] axis=', axis, ' sign=', this._curlSign);
+    const prev = this._last;
+    this._last = null;
+    this.setGesture(prev || 'close');
+  },
 };
 window.HandView = HandView;
+// DevTools helper — run `_HVdebug()` in the console if gestures don't move
+// anything. Prints what the view thinks it's controlling + tries a max curl.
+window._HVdebug = function() {
+  const hv = window.HandView;
+  console.log('scene?',       !!hv._scene);
+  console.log('joints thumb', hv._thumb.map(n => n.name));
+  console.log('joints fingers', hv._fingers.map(f => f.map(n => n.name)));
+  console.log('axis/sign',   hv._curlAxis, hv._curlSign);
+  if (hv._fingers[0] && hv._fingers[0][1]) {
+    const n = hv._fingers[0][1];
+    console.log('index proximal node:', n.name, 'rotQ:', n.rotationQuaternion);
+  }
+  hv.setGesture('close');
+  console.log('applied "close" — if hand did not curl, axis guess is wrong; try HandView.setAxis("x",-1), "y",±1, or "z",±1');
+  return 'ok';
+};
 
 // Toggle between the SVG hand and the Three.js arm viewports.
 // Default = hand (faster, no GPU, gesture-focused).
