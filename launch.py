@@ -12,11 +12,28 @@ Usage:
 """
 import argparse
 import os
+import site
 import sys
 import threading
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
+ROOT_DIR = os.path.dirname(__file__)
+SERVER_DIR = os.path.join(ROOT_DIR, "server")
+VENDOR_DIR = os.path.join(ROOT_DIR, "vendor")
+os.environ.setdefault("PYTHONNOUSERSITE", "1")
+try:
+    USER_SITE = site.getusersitepackages()
+except Exception:
+    USER_SITE = None
+if USER_SITE:
+    normalized_user_site = os.path.normcase(os.path.abspath(USER_SITE))
+    sys.path[:] = [
+        path for path in sys.path
+        if os.path.normcase(os.path.abspath(path or os.curdir)) != normalized_user_site
+    ]
+if os.path.isdir(VENDOR_DIR):
+    sys.path.insert(0, VENDOR_DIR)
+sys.path.insert(0, SERVER_DIR)
 
 
 def start_server(host, port):

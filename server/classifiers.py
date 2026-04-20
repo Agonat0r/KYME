@@ -64,22 +64,33 @@ class LDAClassifier:
     def is_fitted(self) -> bool:
         return self._fitted
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> Dict:
-        """X: (n_samples, n_features), y: (n_samples,)"""
+    def fit_split(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+    ) -> Dict:
+        """Fit on an explicit train/validation split."""
         from sklearn.metrics import accuracy_score
 
+        self._pipe.fit(X_train, y_train)
+        self._fitted = True
+
+        val_acc = None
+        if X_val is not None and y_val is not None and len(X_val):
+            val_acc = float(accuracy_score(y_val, self._pipe.predict(X_val)))
+        return {"val_accuracy": val_acc, "n_params": self._count_params()}
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> Dict:
+        """X: (n_samples, n_features), y: (n_samples,)"""
         n = len(X)
         rng = np.random.default_rng(42)
         idx = rng.permutation(n)
-        split = int(n * 0.8)
+        split = min(max(int(n * 0.8), 1), max(n - 1, 1))
         X_tr, X_val = X[idx[:split]], X[idx[split:]]
         y_tr, y_val = y[idx[:split]], y[idx[split:]]
-
-        self._pipe.fit(X_tr, y_tr)
-        self._fitted = True
-
-        val_acc = float(accuracy_score(y_val, self._pipe.predict(X_val))) if len(X_val) else None
-        return {"val_accuracy": val_acc, "n_params": self._count_params()}
+        return self.fit_split(X_tr, y_tr, X_val, y_val)
 
     def predict(self, x: np.ndarray) -> Tuple[int, float]:
         """x: (1, n_features) -> (class_idx, confidence)"""
@@ -184,18 +195,21 @@ class TCNClassifier:
             self.hidden, self.n_levels, self.kernel_size, self.dropout,
         )
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> Dict:
-        """X: (n_windows, n_channels, seq_len), y: (n_windows,)"""
+    def fit_split(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+    ) -> Dict:
+        """Fit on an explicit train/validation split."""
         torch, nn, _ = _import_torch()
         self._build()
 
-        n = len(X)
-        idx = np.random.default_rng(42).permutation(n)
-        split = int(n * 0.8)
-        X_tr = torch.tensor(X[idx[:split]], dtype=torch.float32)
-        y_tr = torch.tensor(y[idx[:split]], dtype=torch.long)
-        X_val = torch.tensor(X[idx[split:]], dtype=torch.float32)
-        y_val = torch.tensor(y[idx[split:]], dtype=torch.long)
+        X_tr = torch.tensor(X_train, dtype=torch.float32)
+        y_tr = torch.tensor(y_train, dtype=torch.long)
+        X_val_t = torch.tensor(X_val, dtype=torch.float32) if X_val is not None and len(X_val) else None
+        y_val_t = torch.tensor(y_val, dtype=torch.long) if y_val is not None and len(y_val) else None
 
         opt = torch.optim.Adam(self._model.parameters(), lr=self.lr)
         loss_fn = nn.CrossEntropyLoss()
@@ -215,12 +229,19 @@ class TCNClassifier:
         self._fitted = True
 
         val_acc = None
-        if len(X_val):
+        if X_val_t is not None and y_val_t is not None and len(X_val_t):
             with torch.no_grad():
-                preds = self._model(X_val).argmax(dim=1)
-                val_acc = float((preds == y_val).float().mean())
+                preds = self._model(X_val_t).argmax(dim=1)
+                val_acc = float((preds == y_val_t).float().mean())
 
         return {"val_accuracy": val_acc, "n_params": self._count_params()}
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> Dict:
+        """X: (n_windows, n_channels, seq_len), y: (n_windows,)"""
+        n = len(X)
+        idx = np.random.default_rng(42).permutation(n)
+        split = min(max(int(n * 0.8), 1), max(n - 1, 1))
+        return self.fit_split(X[idx[:split]], y[idx[:split]], X[idx[split:]], y[idx[split:]])
 
     def predict(self, x: np.ndarray) -> Tuple[int, float]:
         """x: (1, n_channels, seq_len) raw window"""
@@ -235,6 +256,14 @@ class TCNClassifier:
             cls = int(proba.argmax())
             conf = float(proba[cls])
         return cls, conf
+
+    def predict_batch(self, X: np.ndarray) -> np.ndarray:
+        torch, _, _ = _import_torch()
+        self._model.eval()
+        with torch.no_grad():
+            inp = torch.tensor(X, dtype=torch.float32)
+            logits = self._model(inp)
+            return logits.argmax(dim=1).cpu().numpy()
 
     def save(self, path: str):
         torch, _, _ = _import_torch()
@@ -372,18 +401,21 @@ class MambaClassifier:
             self.d_model, self.d_state, self.n_layers,
         )
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> Dict:
-        """X: (n_windows, n_channels, seq_len), y: (n_windows,)"""
+    def fit_split(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+    ) -> Dict:
+        """Fit on an explicit train/validation split."""
         torch, nn, _ = _import_torch()
         self._build()
 
-        n = len(X)
-        idx = np.random.default_rng(42).permutation(n)
-        split = int(n * 0.8)
-        X_tr = torch.tensor(X[idx[:split]], dtype=torch.float32)
-        y_tr = torch.tensor(y[idx[:split]], dtype=torch.long)
-        X_val = torch.tensor(X[idx[split:]], dtype=torch.float32)
-        y_val = torch.tensor(y[idx[split:]], dtype=torch.long)
+        X_tr = torch.tensor(X_train, dtype=torch.float32)
+        y_tr = torch.tensor(y_train, dtype=torch.long)
+        X_val_t = torch.tensor(X_val, dtype=torch.float32) if X_val is not None and len(X_val) else None
+        y_val_t = torch.tensor(y_val, dtype=torch.long) if y_val is not None and len(y_val) else None
 
         opt = torch.optim.Adam(self._model.parameters(), lr=self.lr)
         loss_fn = nn.CrossEntropyLoss()
@@ -405,12 +437,19 @@ class MambaClassifier:
         self._fitted = True
 
         val_acc = None
-        if len(X_val):
+        if X_val_t is not None and y_val_t is not None and len(X_val_t):
             with torch.no_grad():
-                preds = self._model(X_val).argmax(dim=1)
-                val_acc = float((preds == y_val).float().mean())
+                preds = self._model(X_val_t).argmax(dim=1)
+                val_acc = float((preds == y_val_t).float().mean())
 
         return {"val_accuracy": val_acc, "n_params": self._count_params()}
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> Dict:
+        """X: (n_windows, n_channels, seq_len), y: (n_windows,)"""
+        n = len(X)
+        idx = np.random.default_rng(42).permutation(n)
+        split = min(max(int(n * 0.8), 1), max(n - 1, 1))
+        return self.fit_split(X[idx[:split]], y[idx[:split]], X[idx[split:]], y[idx[split:]])
 
     def predict(self, x: np.ndarray) -> Tuple[int, float]:
         """x: (1, n_channels, seq_len) or (n_channels, seq_len)"""
@@ -425,6 +464,14 @@ class MambaClassifier:
             cls = int(proba.argmax())
             conf = float(proba[cls])
         return cls, conf
+
+    def predict_batch(self, X: np.ndarray) -> np.ndarray:
+        torch, _, _ = _import_torch()
+        self._model.eval()
+        with torch.no_grad():
+            inp = torch.tensor(X, dtype=torch.float32)
+            logits = self._model(inp)
+            return logits.argmax(dim=1).cpu().numpy()
 
     def save(self, path: str):
         torch, _, _ = _import_torch()

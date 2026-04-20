@@ -12,6 +12,8 @@ venv/
 .venv/
 env/
 .env
+.deps/
+vendor/
 
 # ─── IDE / Editor ─────────────────────────────────────────────────────────────
 .vscode/
@@ -43,6 +45,8 @@ server/sessions/
 
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 *.log
+*.err
+*.out
 logs/
 
 # ─── Node (if dashboard ever gets a build step) ──────────────────────────────

@@ -200,21 +200,61 @@ class EMGPipeline:
 
     def _get_fe(self):
         if self._fe is None:
-            from libemg.feature_extractor import FeatureExtractor
-            self._fe = FeatureExtractor()
+            try:
+                from libemg.feature_extractor import FeatureExtractor
+                self._fe = FeatureExtractor()
+            except ModuleNotFoundError:
+                logger.warning("libemg not available - using built-in EMG feature fallback")
+                self._fe = False
         return self._fe
+
+    def _manual_features_batch(self, arr: np.ndarray) -> np.ndarray:
+        """Fallback EMG features when libemg is unavailable.
+
+        arr shape: (n_windows, n_ch, n_samples)
+        """
+        x = arr.astype(np.float64, copy=False)
+        dx = np.diff(x, axis=2)
+        thr = 1e-6
+
+        feats = {
+            "MAV": np.mean(np.abs(x), axis=2),
+            "RMS": np.sqrt(np.mean(x ** 2, axis=2)),
+            "WL": np.sum(np.abs(dx), axis=2),
+            "ZC": np.sum(
+                ((x[:, :, 1:] * x[:, :, :-1]) < 0) & (np.abs(x[:, :, 1:] - x[:, :, :-1]) >= thr),
+                axis=2,
+            ),
+            "SSC": np.sum(
+                ((dx[:, :, 1:] * dx[:, :, :-1]) < 0)
+                & (np.maximum(np.abs(dx[:, :, 1:]), np.abs(dx[:, :, :-1])) >= thr),
+                axis=2,
+            ),
+        }
+
+        chosen = [str(name).upper() for name in config.features if str(name).upper() in feats]
+        if not chosen:
+            chosen = ["MAV", "RMS", "WL", "ZC", "SSC"]
+        parts = [feats[name] for name in sorted(chosen)]
+        return np.concatenate(parts, axis=1).astype(np.float32, copy=False)
 
     def extract_features(self, window: np.ndarray) -> np.ndarray:
         """Single window (n_ch, n_samples) -> flat feature vector."""
         w3d = window[np.newaxis, :, :]
-        feats = self._get_fe().extract_features(config.features, w3d)
+        fe = self._get_fe()
+        if fe is False:
+            return self._manual_features_batch(w3d).flatten()
+        feats = fe.extract_features(config.features, w3d)
         parts = [feats[k] for k in sorted(feats.keys())]
         return np.concatenate(parts, axis=1).flatten()
 
     def extract_features_batch(self, windows: List[np.ndarray]) -> np.ndarray:
         """List[window] -> (n_windows, n_features)."""
         arr = np.stack(windows, axis=0)
-        feats = self._get_fe().extract_features(config.features, arr)
+        fe = self._get_fe()
+        if fe is False:
+            return self._manual_features_batch(arr)
+        feats = fe.extract_features(config.features, arr)
         parts = [feats[k] for k in sorted(feats.keys())]
         return np.concatenate(parts, axis=1)
 
@@ -346,12 +386,14 @@ class EMGPipeline:
 
     def save_model(self, path: str = None) -> str:
         ext = ".pkl" if self._classifier_name == "LDA" else ".pt"
-        path = path or os.path.join(config.model_dir, f"{self._classifier_name.lower()}_model{ext}")
-        meta_path = os.path.join(config.model_dir, "active_classifier.pkl")
+        profile = config.signal_profile_name
+        path = path or os.path.join(config.model_dir, f"{profile}_{self._classifier_name.lower()}_model{ext}")
+        meta_path = os.path.join(config.model_dir, f"active_{profile}_classifier.pkl")
 
         self._classifier.save(path)
         with open(meta_path, "wb") as f:
             pickle.dump({
+                "profile": profile,
                 "classifier": self._classifier_name,
                 "path": path,
                 "gestures": config.gestures,
@@ -361,32 +403,46 @@ class EMGPipeline:
         return path
 
     def load_model(self, path: str = None) -> bool:
-        meta_path = path or os.path.join(config.model_dir, "active_classifier.pkl")
-        if not os.path.exists(meta_path):
-            return False
-        try:
-            with open(meta_path, "rb") as f:
-                meta = pickle.load(f)
-            name = meta["classifier"]
-            model_path = meta["path"]
-            if not os.path.exists(model_path):
-                return False
+        meta_paths = (
+            [path]
+            if path
+            else [
+                os.path.join(config.model_dir, f"active_{config.signal_profile_name}_classifier.pkl"),
+                os.path.join(config.model_dir, "active_classifier.pkl"),
+            ]
+        )
 
-            kwargs = {}
-            if name in ("TCN", "Mamba"):
-                kwargs = {"n_channels": config.n_channels, "n_classes": len(config.gestures)}
-            clf = get_classifier(name, **kwargs)
-            clf.load(model_path)
+        for meta_path in meta_paths:
+            if not os.path.exists(meta_path):
+                continue
+            try:
+                with open(meta_path, "rb") as f:
+                    meta = pickle.load(f)
 
-            with self._lock:
-                self._classifier = clf
-                self._classifier_name = name
-                self._is_trained = True
-            logger.info(f"Loaded {name} model from {model_path}")
-            return True
-        except Exception as exc:
-            logger.error(f"load_model failed: {exc}")
-            return False
+                profile = meta.get("profile")
+                if profile and profile != config.signal_profile_name:
+                    continue
+
+                name = meta["classifier"]
+                model_path = meta["path"]
+                if not os.path.exists(model_path):
+                    continue
+
+                kwargs = {}
+                if name in ("TCN", "Mamba"):
+                    kwargs = {"n_channels": config.n_channels, "n_classes": len(config.gestures)}
+                clf = get_classifier(name, **kwargs)
+                clf.load(model_path)
+
+                with self._lock:
+                    self._classifier = clf
+                    self._classifier_name = name
+                    self._is_trained = True
+                logger.info(f"Loaded {name} model from {model_path}")
+                return True
+            except Exception as exc:
+                logger.error(f"load_model failed: {exc}")
+        return False
 
     # ── Utilities ─────────────────────────────────────────────────────────
 

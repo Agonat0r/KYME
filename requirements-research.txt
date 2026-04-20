@@ -1,0 +1,39 @@
+-r requirements.txt
+
+# Notebook and analysis baseline
+jupyterlab
+ipykernel
+pandas
+scipy
+matplotlib
+seaborn
+plotly
+h5py
+
+# Biosignal acquisition, synchronization, and standards
+pylsl
+mne-lsl
+pyxdf
+mne
+nilearn
+mne-bids
+pybids
+pyEDFlib
+neurokit2
+
+# Feature extraction and artifact handling
+mne-features
+mne-icalabel
+
+# Classical and deep-learning BCI research
+pyriemann
+moabb
+braindecode
+torcheeg
+lightning
+optuna
+hydra-core
+wandb
+
+# Experimental paradigms and stimulus delivery
+psychopy

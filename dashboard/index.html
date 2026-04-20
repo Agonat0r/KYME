@@ -6,6 +6,7 @@
   <title>KYMA</title>
   <link rel="icon" href="data:,">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/assets/driverjs/driver.css">
   <style>
     /* ===================================================================
        RESET + CSS VARS
@@ -14,21 +15,44 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0d1117;
-      --surface:   #161b22;
-      --border:    #30363d;
-      --accent:    #58a6ff;
-      --green:     #3fb950;
-      --yellow:    #d29922;
-      --red:       #f85149;
-      --text:      #c9d1d9;
-      --text-dim:  #8b949e;
-      --radius:    8px;
-      --font:      'Segoe UI', system-ui, sans-serif;
+      --bg:        #e7e2d9;
+      --surface:   rgba(247, 242, 235, 0.74);
+      --border:    rgba(46, 47, 56, 0.10);
+      --accent:    #586fda;
+      --green:     #4f8f69;
+      --yellow:    #b28327;
+      --red:       #c15c70;
+      --text:      #252831;
+      --text-dim:  #727683;
+      --radius:    18px;
+      --font:      Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color-scheme: light;
+    }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.16) transparent;
+    }
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.10));
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      border-radius: 999px;
     }
 
     body {
-      background: var(--bg);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(128, 146, 224, 0.16), transparent 28%),
+        radial-gradient(circle at 86% 18%, rgba(214, 190, 165, 0.14), transparent 24%),
+        radial-gradient(circle at 78% 84%, rgba(158, 170, 206, 0.10), transparent 22%),
+        linear-gradient(180deg, #f4f0ea 0%, #ebe5dc 44%, #e1dbd0 100%);
       color: var(--text);
       font-family: var(--font);
       font-size: 14px;
@@ -36,6 +60,49 @@
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      letter-spacing: -0.01em;
+      line-height: 1.35;
+      position: relative;
+      font-feature-settings: "ss01" 1, "cv11" 1;
+    }
+    body::before,
+    body::after {
+      content:'';
+      position: fixed;
+      inset: auto;
+      width: 42vw;
+      height: 26vw;
+      min-width: 280px;
+      min-height: 200px;
+      border-radius: 42% 58% 55% 45% / 58% 40% 60% 42%;
+      pointer-events: none;
+      filter: blur(92px);
+      opacity: .42;
+      z-index: 0;
+    }
+    body::before {
+      top: -10vw;
+      right: -6vw;
+      background:
+        radial-gradient(ellipse at 30% 46%, rgba(88,111,218,.24) 0%, rgba(88,111,218,.12) 26%, rgba(88,111,218,0) 68%),
+        radial-gradient(ellipse at 68% 48%, rgba(164,177,232,.16) 0%, rgba(164,177,232,0) 62%);
+      animation: ambient-drift-a 24s ease-in-out infinite alternate;
+    }
+    body::after {
+      bottom: -14vw;
+      left: -8vw;
+      background:
+        radial-gradient(ellipse at 38% 44%, rgba(207,175,146,.22) 0%, rgba(207,175,146,.10) 30%, rgba(207,175,146,0) 72%),
+        radial-gradient(ellipse at 64% 56%, rgba(172,184,214,.14) 0%, rgba(172,184,214,0) 64%);
+      animation: ambient-drift-b 30s ease-in-out infinite alternate;
+    }
+    @keyframes ambient-drift-a {
+      0% { transform: translate3d(0, 0, 0) rotate(-10deg) scale(1); }
+      100% { transform: translate3d(-2vw, 1.6vw, 0) rotate(-17deg) scale(1.07); }
+    }
+    @keyframes ambient-drift-b {
+      0% { transform: translate3d(0, 0, 0) rotate(14deg) scale(1); }
+      100% { transform: translate3d(2vw, -1.2vw, 0) rotate(22deg) scale(1.05); }
     }
 
     /* ===================================================================
@@ -43,37 +110,219 @@
        =================================================================== */
     #topbar {
       display: flex; align-items: center; gap: 12px;
-      padding: 8px 16px; background: var(--surface);
-      border-bottom: 2px solid var(--border); flex-shrink: 0; z-index: 10;
+      padding: 12px 18px; background: rgba(245, 240, 233, 0.72);
+      border-bottom: 1px solid rgba(46,47,56,0.08);
+      flex-shrink: 0; z-index: 10;
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      box-shadow: 0 18px 50px rgba(74, 67, 60, 0.08);
     }
-    #topbar h1 { font-size: 16px; font-weight: 600; font-family: var(--font); }
+    #topbar h1 {
+      font-size: 15px;
+      font-weight: 680;
+      font-family: var(--font);
+      letter-spacing: -0.03em;
+      color: #152033;
+    }
     #state-badge {
-      padding: 2px 10px; border-radius: var(--radius);
+      padding: 4px 10px; border-radius: 999px;
       font-size: 12px; font-weight: 600; text-transform: uppercase;
-      background: #21262d; color: var(--text-dim); font-family: var(--font);
+      background: rgba(255,255,255,0.64); color: var(--text-dim); font-family: var(--font);
+      border: 1px solid rgba(28,41,61,0.08);
+      backdrop-filter: blur(18px) saturate(160%);
       display: none;
     }
-    #state-badge.streaming   { display:inline; background:#0d2d1a; color:var(--green); }
-    #state-badge.training    { display:inline; background:#2d2000; color:var(--yellow); }
-    #state-badge.calibrating { display:inline; background:#1f2d3d; color:var(--accent); }
-    #state-badge.estop       { display:inline; background:#2d0d0d; color:var(--red); }
+    #state-badge.streaming   { display:inline; background:rgba(47,154,102,.10); color:var(--green); }
+    #state-badge.training    { display:inline; background:rgba(184,138,27,.10); color:var(--yellow); }
+    #state-badge.calibrating { display:inline; background:rgba(79,124,255,.10); color:var(--accent); }
+    #state-badge.estop       { display:inline; background:rgba(212,90,114,.12); color:var(--red); }
+    #source-badge {
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      background: rgba(255,255,255,0.64); color: var(--text-dim); font-family: var(--font);
+      border: 1px solid rgba(28,41,61,0.08); display: inline;
+      backdrop-filter: blur(18px) saturate(160%);
+    }
+    #source-badge.synthetic { background:rgba(79,124,255,.10); color:var(--accent); }
+    #source-badge.hardware  { background:rgba(47,154,102,.10); color:var(--green); }
+    #source-badge.playback  { background:rgba(141,107,255,.10); color:#7057e7; }
+    #source-badge.lsl       { background:rgba(42,169,161,.10); color:#2aa9a1; }
+    #profile-badge {
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      background: rgba(255,255,255,0.64); color: var(--yellow); font-family: var(--font);
+      border: 1px solid rgba(28,41,61,0.08); display: inline;
+      backdrop-filter: blur(18px) saturate(160%);
+    }
 
-    /* little dot that goes green when websocket connects */
-    #ws-dot { width:8px; height:8px; border-radius:50%; background:var(--red); }
-    #ws-dot.ok { background:var(--green); }
+    #ws-dot {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:82px;
+      height:24px;
+      padding:0 10px;
+      border-radius:12px;
+      border:1px solid rgba(46,47,56,0.08);
+      background:rgba(255,255,255,.56);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    #ws-dot::before {
+      content:'Retrying';
+      font-size:10px;
+      font-weight:600;
+      letter-spacing:.04em;
+      color:var(--text-dim);
+      text-transform:uppercase;
+    }
+    #ws-dot.ok::before {
+      content:'Synced';
+      color:var(--accent);
+    }
 
     .spacer { flex:1; }
 
     #theme-select {
-      background:#21262d; color:var(--text); border:1px solid var(--border);
-      border-radius:4px; padding:3px 8px; font-size:12px; cursor:pointer;
+      background:rgba(248,244,238,0.92); color:var(--text); border:1px solid rgba(46,47,56,0.10);
+      border-radius:14px; padding:7px 12px; font-size:12px; cursor:pointer;
       font-family:var(--font);
+      backdrop-filter: blur(18px) saturate(160%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.62);
+    }
+    #theme-select option,
+    select option {
+      background:#f5f0ea;
+      color:#252831;
     }
     /* big red panic button, always in sight */
     #btn-estop {
-      padding:6px 20px; background:var(--red); color:#fff; border:none;
-      border-radius:var(--radius); font-size:14px; font-weight:700;
-      cursor:pointer; letter-spacing:1px; font-family:var(--font);
+      padding:8px 18px; background:linear-gradient(180deg, rgba(193,92,112,0.94), rgba(179,77,100,0.92));
+      color:#fff; border:1px solid rgba(255,255,255,0.12);
+      border-radius:14px; font-size:13px; font-weight:700;
+      cursor:pointer; letter-spacing:.03em; font-family:var(--font);
+      box-shadow:0 10px 24px rgba(193,92,112,.18), inset 0 1px 0 rgba(255,255,255,.16);
+    }
+
+    #workspace-bar {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 18px; background:rgba(243, 237, 230, 0.58);
+      border-bottom:1px solid rgba(46,47,56,0.06); flex-shrink:0;
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+    }
+    #workspace-tabs {
+      display:flex; gap:6px; flex-wrap:wrap;
+    }
+    .workspace-btn {
+      padding:8px 13px; background:rgba(247,243,237,0.76); color:var(--text-dim);
+      border:1px solid rgba(46,47,56,0.08); border-radius:14px;
+      cursor:pointer; font-size:11px; font-family:var(--font);
+      transition:all .18s ease;
+      backdrop-filter: blur(14px) saturate(150%);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.82);
+      position:relative;
+      overflow:hidden;
+      isolation:isolate;
+    }
+    .workspace-btn::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, rgba(88,111,218,.12), rgba(255,255,255,0));
+      transform:translateX(-102%);
+      transition:transform .28s ease;
+      z-index:-1;
+    }
+    .workspace-btn:hover::before {
+      transform:translateX(0);
+    }
+    .workspace-btn.active {
+      background:linear-gradient(180deg, rgba(88,111,218,.20), rgba(88,111,218,.09));
+      color:var(--text); border-color:rgba(88,111,218,.22);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.72), 0 10px 22px rgba(74,67,60,.08);
+    }
+    #workspace-summary {
+      font-size:10px; color:rgba(91,105,126,.82); line-height:1.35;
+      min-width:0;
+      max-width: 520px;
+    }
+    .workspace-hidden {
+      display:none !important;
+    }
+    .driver-popover.kyma-tour {
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text);
+      border: 1px solid rgba(28,41,61,0.10);
+      border-radius: var(--radius);
+      box-shadow: 0 24px 60px rgba(49,62,82,0.14);
+      backdrop-filter: blur(26px) saturate(165%);
+    }
+    .driver-popover.kyma-tour .driver-popover-title {
+      color: var(--text);
+      font-family: var(--font);
+    }
+    .driver-popover.kyma-tour .driver-popover-description {
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .driver-popover.kyma-tour .driver-popover-progress-text {
+      color: var(--text-dim);
+    }
+    .driver-popover.kyma-tour .driver-popover-footer {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-top:14px;
+      flex-wrap:nowrap;
+    }
+    .driver-popover.kyma-tour .driver-popover-navigation-btns {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-left:auto;
+    }
+    .driver-popover.kyma-tour .driver-popover-prev-btn,
+    .driver-popover.kyma-tour .driver-popover-next-btn {
+      min-height: 36px;
+      padding: 0 15px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.60);
+      transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+    .driver-popover.kyma-tour .driver-popover-prev-btn {
+      background: rgba(255,255,255,.76);
+      color: var(--text);
+      border: 1px solid rgba(28,41,61,0.10);
+    }
+    .driver-popover.kyma-tour .driver-popover-next-btn {
+      background: linear-gradient(180deg, rgba(88,111,218,.96), rgba(88,111,218,.82));
+      color: #fff;
+      border: 1px solid rgba(88,111,218,.22);
+    }
+    .driver-popover.kyma-tour .driver-popover-prev-btn:hover,
+    .driver-popover.kyma-tour .driver-popover-next-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.74), 0 8px 18px rgba(37,40,49,.10);
+    }
+    .driver-popover.kyma-tour .driver-popover-close-btn {
+      color: var(--text-dim);
+    }
+    .driver-popover.kyma-tour .driver-popover-arrow-side-left.driver-popover-arrow,
+    .driver-popover.kyma-tour .driver-popover-arrow-side-right.driver-popover-arrow,
+    .driver-popover.kyma-tour .driver-popover-arrow-side-top.driver-popover-arrow,
+    .driver-popover.kyma-tour .driver-popover-arrow-side-bottom.driver-popover-arrow {
+      color: rgba(255,255,255,0.86);
+    }
+    .driver-active-element {
+      box-shadow: 0 0 0 2px rgba(88,166,255,0.55) !important;
+      border-radius: var(--radius);
     }
 
     /* ===================================================================
@@ -81,31 +330,146 @@
        left panel = controls, center = emg + 3d arm, right = readouts
        =================================================================== */
     #main {
-      display:grid; grid-template-columns:200px 5px 1fr 5px 280px;
+      display:grid; grid-template-columns:232px 5px 1fr 5px 280px;
       flex:1; min-height:0; overflow:hidden;
+      padding:12px;
+      gap:10px;
+      position:relative;
+      z-index:1;
     }
     @media (max-width:900px) {
-      #main { grid-template-columns:170px 5px 1fr 5px 220px; }
+      #main { grid-template-columns:198px 5px 1fr 5px 220px; }
     }
     @media (max-width:700px) {
       #main { grid-template-columns:1fr; grid-template-rows:auto 1fr auto; }
       #main .resize-handle-h { display:none; }
     }
     .panel {
-      background:var(--surface); border-right:1px solid var(--border);
+      background:var(--surface); border:1px solid var(--border);
       overflow-y:auto; padding:10px;
-      display:flex; flex-direction:column; gap:8px;
+      display:flex; flex-direction:column; gap:6px;
+      border-radius:calc(var(--radius) + 6px);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:0 18px 42px rgba(49,62,82,.10), inset 0 1px 0 rgba(255,255,255,.58);
+      position: relative;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
     }
-    .panel:last-child { border-right:none; border-left:1px solid var(--border); }
+    .panel::before {
+      content:'';
+      position:absolute;
+      inset:0 0 auto 0;
+      height:120px;
+      pointer-events:none;
+      border-radius:inherit;
+      background:linear-gradient(180deg, rgba(255,250,245,.56), rgba(255,255,255,0));
+      opacity:.7;
+    }
+    .panel:last-child { border-left:1px solid var(--border); }
     .card {
-      background:var(--bg); border:1px solid var(--border);
-      border-radius:var(--radius); padding:8px 10px;
+      background:linear-gradient(180deg, rgba(247,242,235,.88), rgba(238,232,225,.68));
+      border:1px solid rgba(28,41,61,.08);
+      border-radius:var(--radius); padding:10px 11px;
+      box-shadow:0 12px 26px rgba(49,62,82,.06), inset 0 1px 0 rgba(255,255,255,.74);
+      position: relative;
+      overflow: hidden;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .card:hover {
+      border-color: rgba(79,124,255,.14);
+      box-shadow:0 14px 28px rgba(49,62,82,.08), inset 0 1px 0 rgba(255,255,255,.78);
+      transform: translateY(-1px);
+    }
+    .card::before {
+      content:'';
+      position:absolute;
+      inset:0 0 auto 0;
+      height:64px;
+      pointer-events:none;
+      border-radius:inherit;
+      background:linear-gradient(180deg, rgba(255,251,247,.10), rgba(255,255,255,0));
+      opacity:.75;
     }
     .card h3 {
-      font-size:10px; text-transform:uppercase; letter-spacing:.6px;
-      color:var(--text-dim); margin-bottom:6px; font-family:var(--font);
+      font-size:10px; text-transform:uppercase; letter-spacing:.08em;
+      color:rgba(87,104,128,.90); margin-bottom:7px; font-family:var(--font);
+      font-weight:600;
+      position: relative;
+      z-index: 1;
     }
-
+    .setup-panel {
+      border: 1px solid rgba(28,41,61,.08);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(248,244,238,.94), rgba(239,233,226,.76));
+      padding: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 8px 16px rgba(49,62,82,.04);
+      backdrop-filter: blur(18px) saturate(145%);
+    }
+    .setup-panel + .setup-panel { margin-top: 6px; }
+    .setup-title,
+    .setup-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .setup-title {
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 5px;
+    }
+    .setup-input {
+      width: 100%;
+      font-size: 11px;
+      background: linear-gradient(180deg, rgba(250,247,243,.98), rgba(241,236,230,.88));
+      color: var(--text);
+      border: 1px solid rgba(28,41,61,.10);
+      border-radius: 12px;
+      padding: 7px 9px;
+      font-family: var(--font);
+      backdrop-filter: blur(14px) saturate(150%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.82);
+    }
+    .setup-input:focus,
+    #clf-select:focus,
+    .tab-btn:focus,
+    .node-body input:focus,
+    .node-body select:focus,
+    #workspace-toolbar select:focus,
+    .gmap-row select:focus,
+    #code-output:focus,
+    #bench-report-text:focus,
+    .filter-code:focus {
+      outline: none;
+      border-color: rgba(79,124,255,.32);
+      box-shadow: 0 0 0 3px rgba(79,124,255,.10), inset 0 1px 0 rgba(255,255,255,.86);
+    }
+    .setup-inline {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .setup-note {
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--text-dim);
+      line-height: 1.3;
+    }
+    .setup-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 9px;
+      color: var(--yellow);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .setup-copy { color: var(--text-dim); }
+    .stream-actions { margin-top: 6px; }
+    .stream-actions-row { display: flex; gap: 6px; margin-top: 5px; }
+    .session-import-actions { display:flex; gap:6px; margin-top:6px; }
+    .session-import-actions .btn { flex:1; }
     /* collapsible card sections */
     .card-collapsible h3 {
       cursor:pointer; user-select:none; display:flex; align-items:center; justify-content:space-between;
@@ -122,37 +486,56 @@
     #center { display:flex; flex-direction:column; overflow:hidden; }
 
     #emg-header {
-      padding:6px 16px; border-bottom:1px solid var(--border);
+      padding:10px 16px; border-bottom:1px solid rgba(28,41,61,.06);
       display:flex; align-items:center; gap:12px; flex-shrink:0;
+      background:linear-gradient(180deg, rgba(255,255,255,.66), rgba(255,255,255,.30));
+      backdrop-filter: blur(18px) saturate(140%);
     }
     #emg-header span { font-size:12px; color:var(--text-dim); }
 
     /* emg waveform canvas - takes top 55% of center */
     #canvas-container { flex:3; position:relative; overflow:hidden; min-height:0; }
     #emg-canvas { display:block; width:100%; height:100%; }
+    #canvas-container.review-paused #emg-canvas { cursor: crosshair; }
 
     #channel-legend {
       display:flex; flex-wrap:wrap; gap:8px; padding:4px 16px;
-      border-top:1px solid var(--border); flex-shrink:0;
+      border-top:1px solid rgba(28,41,61,.06); flex-shrink:0;
+      background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.24));
+      backdrop-filter: blur(14px) saturate(130%);
     }
-    .ch-label { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-dim); }
+    .ch-label {
+      display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim);
+      padding:2px 0;
+    }
+    .ch-label.off { opacity:.55; }
+    .ch-toggle {
+      width:12px; height:12px; cursor:pointer; accent-color:var(--accent);
+      flex-shrink:0;
+    }
     .ch-dot { width:8px; height:8px; border-radius:50%; }
+    .ch-name { white-space:nowrap; }
 
     /* bottom viewport shell - hosts either the SVG hand or the Three.js arm */
     #viz-section {
       flex:2; position:relative; overflow:hidden; min-height:220px;
-      border-top:1px solid var(--border); display:flex; flex-direction:column;
+      border-top:1px solid rgba(28,41,61,.06); display:flex; flex-direction:column;
+      background: linear-gradient(180deg, rgba(255,255,255,.48), rgba(255,255,255,.18));
     }
     #viz-tabs {
-      display:flex; gap:2px; padding:4px 8px; background:var(--surface);
-      border-bottom:1px solid var(--border); flex-shrink:0; align-items:center;
+      display:flex; gap:6px; padding:8px 10px; background:rgba(255,255,255,.58);
+      border-bottom:1px solid rgba(28,41,61,.06); flex-shrink:0; align-items:center;
+      backdrop-filter: blur(18px) saturate(140%);
     }
     .viz-tab {
-      padding:3px 12px; background:transparent; color:var(--text-dim);
-      border:1px solid var(--border); border-radius:4px;
+      padding:5px 12px; background:rgba(255,255,255,.78); color:var(--text-dim);
+      border:1px solid rgba(28,41,61,.08); border-radius:999px;
       font-size:11px; cursor:pointer; font-family:var(--font);
     }
-    .viz-tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
+    .viz-tab.active {
+      background:linear-gradient(180deg, rgba(79,124,255,.18), rgba(79,124,255,.08));
+      color:var(--text); border-color:rgba(79,124,255,.24);
+    }
     #viz-body { flex:1; position:relative; overflow:hidden; }
 
     /* 3d arm viewport */
@@ -162,7 +545,9 @@
     #arm-container {
       width:100%; height:100%;
       /* fallback bg until three.js loads */
-      background: radial-gradient(ellipse at center, #161b22 0%, #0d1117 100%);
+      background:
+        radial-gradient(circle at 24% 18%, rgba(79,124,255,.10), transparent 20%),
+        radial-gradient(ellipse at center, #fdfefe 0%, #e9edf4 100%);
     }
     /* gesture label floating over the viewport */
     #arm-gesture-label {
@@ -175,10 +560,196 @@
       color:var(--accent); font-weight:700; font-size:14px;
     }
 
+    #eeg-brain-section {
+      position:absolute; inset:0; overflow:auto;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(79,124,255,.08), transparent 22%),
+        radial-gradient(ellipse at center, #fdfefe 0%, #ebeff5 88%);
+      padding:8px;
+    }
+    .viz-panel-grid {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:8px;
+      min-height:0;
+      align-items:start;
+    }
+    .viz-figure {
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.72));
+      border:1px solid rgba(28,41,61,.08);
+      border-radius:var(--radius);
+      padding:6px;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
+    .viz-figure h4 {
+      font-size:9px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      color:var(--text-dim);
+      margin:0;
+    }
+    .viz-figure p {
+      font-size:9px;
+      color:var(--text-dim);
+      line-height:1.2;
+      margin:0;
+    }
+    .viz-figure img,
+    .viz-figure iframe {
+      width:100%;
+      flex:none;
+      height:230px;
+      min-height:0;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#f5f7fb;
+    }
+    .viz-figure img { object-fit:contain; }
+    .viz-figure iframe { overflow:hidden; }
+    .viz-figure.full-span { grid-column:auto; min-height:0; }
+    .eeg-brain-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+    .eeg-brain-link {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:30px;
+      padding:0 12px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:rgba(79,124,255,.10);
+      color:var(--accent);
+      text-decoration:none;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.45px;
+      text-transform:uppercase;
+    }
+    .eeg-brain-link[aria-disabled="true"] {
+      pointer-events:none;
+      opacity:.45;
+    }
+    .eeg-brain-link:hover {
+      background:rgba(79,124,255,.16);
+    }
+    .scope-status-chip {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:72px;
+      height:24px;
+      padding:0 10px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      background:rgba(255,255,255,.72);
+      color:var(--text-dim);
+      border:1px solid rgba(28,41,61,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.82);
+    }
+    .scope-status-chip.paused {
+      background:rgba(88,111,218,.12);
+      color:var(--accent);
+      border-color:rgba(88,111,218,.18);
+    }
+    .review-stat-grid {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:6px;
+      margin-top:8px;
+    }
+    .review-stat {
+      padding:8px 9px;
+      border:1px solid rgba(28,41,61,.08);
+      border-radius:12px;
+      background:rgba(255,255,255,.58);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.64);
+    }
+    .review-stat-label {
+      display:block;
+      font-size:9px;
+      color:var(--text-dim);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:4px;
+    }
+    .review-stat-value {
+      display:block;
+      font-size:11px;
+      color:var(--text);
+      font-weight:600;
+    }
+    .review-marker-list {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-top:6px;
+    }
+    .review-marker-item {
+      padding:8px 9px;
+      border-radius:12px;
+      background:rgba(255,255,255,.54);
+      border:1px solid rgba(28,41,61,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.62);
+    }
+    .review-marker-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:2px;
+      font-size:10px;
+    }
+    .review-marker-name {
+      color:var(--text);
+      font-weight:700;
+    }
+    .review-marker-range {
+      color:var(--accent);
+      font-size:9px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .review-marker-note {
+      font-size:10px;
+      color:var(--text-dim);
+      line-height:1.4;
+    }
+    #eeg-brain-marker-summary {
+      font-size:9px;
+      color:var(--text-dim);
+      line-height:1.2;
+    }
+    #eeg-brain-note {
+      font-size:9px;
+      color:var(--text-dim);
+      line-height:1.2;
+      margin-bottom:6px;
+      max-width:72ch;
+    }
+    @media (max-width:980px) {
+      .viz-panel-grid { grid-template-columns:1fr; }
+      .viz-figure.full-span { grid-column:auto; min-height:0; }
+      .viz-figure img,
+      .viz-figure iframe { height:210px; }
+    }
+
     /* hand render viewport - Babylon.js glTF (rigged hand model) */
     #hand-section {
       position:absolute; inset:0;
-      background: radial-gradient(ellipse at center, #1a1f28 0%, #0d1117 80%);
+      background: radial-gradient(ellipse at center, #fbfcfe 0%, #e9edf4 80%);
     }
     #hand-canvas {
       width:100%; height:100%; display:block; outline:none;
@@ -212,9 +783,9 @@
     #pipeline-section.open { max-height:400px; overflow-y:auto; }
     #pipeline-toggle {
       display:flex; align-items:center; justify-content:center;
-      padding:4px; border-top:1px solid var(--border);
+      padding:8px; border-top:1px solid rgba(28,41,61,.06);
       cursor:pointer; font-size:11px; color:var(--text-dim);
-      background:var(--surface); flex-shrink:0; user-select:none;
+      background:rgba(255,255,255,.56); flex-shrink:0; user-select:none;
     }
     #pipeline-toggle:hover { color:var(--accent); }
 
@@ -222,17 +793,19 @@
        RESIZE HANDLES — thin draggable bars between panels
        =================================================================== */
     .resize-handle-h {
-      width:5px; cursor:col-resize; background:var(--border);
+      width:5px; cursor:col-resize; background:rgba(28,41,61,.08);
       transition:background .15s; flex-shrink:0; z-index:5;
       touch-action:none;
+      border-radius:999px;
     }
-    .resize-handle-h:hover, .resize-handle-h.active { background:var(--accent); }
+    .resize-handle-h:hover, .resize-handle-h.active { background:rgba(79,124,255,.46); }
     .resize-handle-v {
-      height:5px; cursor:row-resize; background:var(--border);
+      height:5px; cursor:row-resize; background:rgba(28,41,61,.08);
       transition:background .15s; flex-shrink:0; z-index:5;
       touch-action:none;
+      border-radius:999px;
     }
-    .resize-handle-v:hover, .resize-handle-v.active { background:var(--accent); }
+    .resize-handle-v:hover, .resize-handle-v.active { background:rgba(79,124,255,.46); }
     body.resizing { cursor:col-resize !important; user-select:none !important; }
     body.resizing-v { cursor:row-resize !important; user-select:none !important; }
 
@@ -242,9 +815,10 @@
     .drag-ghost {
       position:fixed; z-index:10000; pointer-events:none;
       padding:8px 14px; border-radius:var(--radius);
-      border:2px solid var(--accent); background:var(--surface);
+      border:1px solid rgba(79,124,255,.22); background:rgba(255,255,255,.86);
       font-size:11px; font-weight:600; font-family:var(--font);
-      color:var(--text); opacity:.9; box-shadow:0 4px 16px rgba(0,0,0,.5);
+      color:var(--text); opacity:.95; box-shadow:0 16px 36px rgba(49,62,82,.14);
+      backdrop-filter: blur(22px) saturate(160%);
       display:flex; align-items:center; gap:6px;
       white-space:nowrap;
     }
@@ -261,9 +835,11 @@
       overflow-x:auto; justify-content:center;
     }
     .pipe-block {
-      background:var(--surface); border:2px solid var(--accent);
+      background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,253,.74)); border:1px solid rgba(79,124,255,.18);
       border-radius:var(--radius); padding:8px 12px; min-width:110px;
       text-align:center; font-size:10px;
+      box-shadow:0 14px 28px rgba(49,62,82,.06), inset 0 1px 0 rgba(255,255,255,.80);
+      backdrop-filter: blur(16px) saturate(135%);
     }
     .pipe-block h4 { color:var(--accent); font-size:9px; margin-bottom:4px; text-transform:uppercase; }
     .pipe-block p  { color:var(--text-dim); font-size:9px; line-height:1.4; }
@@ -287,14 +863,30 @@
        BUTTONS - reusable classes for all the controls
        =================================================================== */
     .btn {
-      padding:6px 12px; border-radius:var(--radius); border:1px solid var(--border);
-      background:#21262d; color:var(--text); cursor:pointer; font-size:13px;
-      width:100%; text-align:center; transition:background .15s; font-family:var(--font);
+      --btn-fill: rgba(88,111,218,.12);
+      padding:7px 12px; border-radius:14px; border:1px solid rgba(28,41,61,.08);
+      background:linear-gradient(180deg, rgba(248,244,238,.98), rgba(240,235,229,.82)); color:var(--text); cursor:pointer; font-size:13px;
+      width:100%; text-align:center; transition:all .18s ease; font-family:var(--font);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.90), 0 10px 20px rgba(74,67,60,.08);
+      backdrop-filter: blur(14px) saturate(150%);
+      position:relative;
+      overflow:hidden;
+      isolation:isolate;
     }
-    .btn:hover { background:#30363d; }
-    .btn.primary { background:var(--accent); color:#000; border-color:var(--accent); }
-    .btn.danger  { background:#2d0d0d; color:var(--red); border-color:#5c1a1a; }
-    .btn.success { background:#0d2d1a; color:var(--green); border-color:#1a5c36; }
+    .btn::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, var(--btn-fill), rgba(255,255,255,0));
+      transform:translateX(-102%);
+      transition:transform .28s ease;
+      z-index:-1;
+    }
+    .btn:hover { transform:translateY(-1px); border-color:rgba(28,41,61,.14); background:linear-gradient(180deg, rgba(249,246,241,.99), rgba(242,238,233,.86)); }
+    .btn:hover::before { transform:translateX(0); }
+    .btn.primary { --btn-fill: rgba(88,111,218,.16); background:linear-gradient(180deg, rgba(88,111,218,.14), rgba(88,111,218,.06)); color:var(--accent); border-color:rgba(88,111,218,.22); }
+    .btn.danger  { --btn-fill: rgba(193,92,112,.14); background:linear-gradient(180deg, rgba(193,92,112,.12), rgba(193,92,112,.05)); color:var(--red); border-color:rgba(193,92,112,.18); }
+    .btn.success { --btn-fill: rgba(79,143,105,.14); background:linear-gradient(180deg, rgba(79,143,105,.12), rgba(79,143,105,.05)); color:var(--green); border-color:rgba(79,143,105,.18); }
     .btn:disabled { opacity:.4; cursor:not-allowed; }
 
     /* gesture training row */
@@ -302,15 +894,16 @@
     .gesture-row .name { flex:1; font-size:13px; text-transform:capitalize; }
     .gesture-row .count { font-size:11px; color:var(--text-dim); min-width:40px; text-align:right; }
     .btn-rec {
-      padding:3px 10px; border-radius:var(--radius); border:1px solid var(--border);
-      background:#21262d; color:var(--text); cursor:pointer; font-size:12px;
+      padding:4px 10px; border-radius:14px; border:1px solid rgba(28,41,61,.08);
+      background:linear-gradient(180deg, rgba(248,244,238,.98), rgba(240,235,229,.82)); color:var(--text); cursor:pointer; font-size:12px;
       font-family:var(--font);
+      backdrop-filter: blur(14px) saturate(150%);
     }
     /* blinks red while recording */
     .btn-rec.active { background:var(--red); color:#fff; border-color:var(--red); animation:pulse-rec .6s infinite; }
     @keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:.6} }
 
-    /* prediction display */
+    /* decoded output display */
     #pred-gesture {
       font-size:28px; font-weight:700; text-transform:capitalize;
       color:var(--accent); margin-bottom:4px; font-family:var(--font);
@@ -318,6 +911,7 @@
     #pred-gesture.bounce { animation:bounce-pred .3s ease; }
     @keyframes bounce-pred { 0%{transform:scale(1)} 40%{transform:scale(1.15)} 100%{transform:scale(1)} }
     #pred-confidence { font-size:13px; color:var(--text-dim); margin-bottom:6px; }
+    #pred-summary { font-size:11px; color:var(--text-dim); margin-bottom:6px; line-height:1.35; min-height:28px; }
     #conf-bar-bg { height:6px; background:var(--border); border-radius:var(--radius); overflow:hidden; }
     #conf-bar { height:100%; background:var(--green); width:0%; transition:width .2s, background .2s; border-radius:var(--radius); }
 
@@ -330,9 +924,10 @@
 
     /* calibration log textarea */
     #cal-log {
-      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,248,252,.82)); border:1px solid rgba(28,41,61,.08); border-radius:var(--radius);
       padding:6px; font-family:monospace; font-size:11px;
       height:90px; overflow-y:auto; color:var(--text-dim);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
     }
     /* manual servo sliders */
     .servo-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
@@ -343,16 +938,28 @@
     /* saved session entries */
     .session-item {
       padding:5px 8px; border:1px solid var(--border); border-radius:var(--radius);
-      font-size:11px; color:var(--text-dim); margin-bottom:3px;
+      font-size:11px; color:var(--text-dim); margin-bottom:4px;
+      display:flex; align-items:flex-start; justify-content:space-between; gap:8px;
+      background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,253,.72));
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
     }
     .session-item .sid { color:var(--text); font-weight:600; }
+    .session-copy { min-width:0; }
+    .session-meta { font-size:10px; color:var(--text-dim); line-height:1.35; }
+    .session-sub { font-size:10px; color:var(--text-dim); }
+    .session-actions { display:flex; gap:4px; flex-shrink:0; }
+    .session-action { width:auto; padding:3px 8px; font-size:10px; white-space:nowrap; }
+    .row-hidden { opacity:.28; }
 
     /* floating notifications */
     #toast {
       position:fixed; bottom:24px; right:24px; padding:10px 18px;
-      border-radius:var(--radius); background:#21262d; border:1px solid var(--border);
+      border-radius:var(--radius); background:rgba(255,255,255,.88); border:1px solid rgba(28,41,61,.10);
       font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none;
       z-index:999; font-family:var(--font);
+      box-shadow:0 18px 42px rgba(49,62,82,.12), inset 0 1px 0 rgba(255,255,255,.90);
+      backdrop-filter: blur(22px) saturate(160%);
     }
     #toast.show { opacity:1; }
 
@@ -360,19 +967,21 @@
     .q-block {
       padding:4px; text-align:center; font-size:9px;
       border-radius:var(--radius); font-family:var(--font);
-      border:1px solid var(--border); transition:background .3s;
+      border:1px solid rgba(28,41,61,.08); transition:background .3s;
+      backdrop-filter: blur(10px) saturate(130%);
     }
-    .q-block.good { background:#0d2d1a; color:var(--green); }
-    .q-block.ok   { background:#2d2000; color:var(--yellow); }
-    .q-block.bad  { background:#2d0d0d; color:var(--red); }
-    .q-block.dead { background:#1a1a1a; color:var(--text-dim); }
+    .q-block.good { background:rgba(47,154,102,.10); color:var(--green); }
+    .q-block.ok   { background:rgba(184,138,27,.10); color:var(--yellow); }
+    .q-block.bad  { background:rgba(212,90,114,.10); color:var(--red); }
+    .q-block.dead { background:rgba(111,125,146,.08); color:var(--text-dim); }
     body.mario .q-block { border-radius:0; border:2px solid #000; }
 
     /* classifier dropdown */
     #clf-select {
-      background:#21262d; color:var(--text); border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.86)); color:var(--text); border:1px solid rgba(28,41,61,.10);
       border-radius:var(--radius); padding:4px 8px; font-size:12px;
       width:100%; margin-bottom:6px; font-family:var(--font);
+      backdrop-filter: blur(14px) saturate(145%);
     }
 
     /* ===================================================================
@@ -521,45 +1130,302 @@
        visual drag-and-drop block programming for Arduino actions
        =================================================================== */
     #block-editor {
-      display:none; grid-template-columns:220px 5px 1fr 5px 260px;
+      display:none; grid-template-columns:232px 5px 1fr 5px 260px;
       flex:1; min-height:0; overflow:hidden;
+      padding:12px;
+      gap:10px;
+      position:relative;
+      z-index:1;
     }
     #block-editor.active { display:grid; }
+    #filter-lab {
+      display:none; grid-template-columns:280px 1fr 300px;
+      flex:1; min-height:0; overflow:hidden;
+      padding:12px;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    #filter-lab.active { display:grid; }
+    #signal-workshop {
+      display:none; grid-template-columns:280px 1fr 320px;
+      flex:1; min-height:0; overflow:hidden;
+      padding:12px;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    #signal-workshop.active { display:grid; }
+    #bench-report {
+      display:none; grid-template-columns:280px 1fr;
+      flex:1; min-height:0; overflow:hidden;
+      padding:12px;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    #bench-report.active { display:grid; }
     #main.hidden { display:none; }
+    #filter-lab .panel { min-height:0; }
+    #signal-workshop .panel { min-height:0; }
+    #bench-report .panel { min-height:0; }
+    #filter-toolbar {
+      display:flex; align-items:center; gap:6px; padding:8px 12px;
+      border-bottom:1px solid rgba(28,41,61,.06); background:rgba(255,255,255,.56); flex-shrink:0;
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+    #filter-toolbar .btn { width:auto; padding:4px 10px; font-size:11px; }
+    #filter-workspace {
+      display:flex; flex-direction:column; min-height:0; overflow:hidden;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:calc(var(--radius) + 6px);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:0 18px 42px rgba(49,62,82,.10), inset 0 1px 0 rgba(255,255,255,.58);
+    }
+    #filter-response-wrap {
+      flex:1; min-height:0; overflow:auto; padding:10px 12px;
+      display:flex; flex-direction:column; gap:10px;
+    }
+    #filter-response-canvas {
+      width:100%; height:220px; border:1px solid var(--border);
+      border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.88));
+    }
+    .filter-canvas-grid {
+      display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;
+    }
+    .filter-canvas-card {
+      border:1px solid rgba(28,41,61,.08); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.72)); padding:8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
+    .filter-canvas-card h3 { margin-bottom:6px; }
+    #filter-polezero-canvas {
+      width:100%; height:220px; border:1px solid var(--border);
+      border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.88));
+    }
+    .filter-grid {
+      display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;
+    }
+    .filter-stat {
+      padding:8px; border:1px solid var(--border); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.72));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
+    .filter-stat .label {
+      font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.4px;
+    }
+    .filter-stat .value {
+      margin-top:4px; font-size:13px; color:var(--text);
+      font-family:var(--font);
+    }
+    .filter-list {
+      display:flex; flex-direction:column; gap:6px;
+      max-height:280px; overflow:auto;
+    }
+    .filter-row {
+      padding:8px; border:1px solid var(--border); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.72)); cursor:pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
+    .filter-row.active {
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(79,124,255,0.20) inset, 0 10px 18px rgba(49,62,82,.05);
+    }
+    .filter-row-title {
+      display:flex; justify-content:space-between; gap:6px; align-items:center;
+      font-size:11px; color:var(--text);
+    }
+    .filter-row-meta {
+      margin-top:4px; font-size:10px; color:var(--text-dim); line-height:1.4;
+    }
+    .filter-code {
+      width:100%; min-height:190px; resize:vertical;
+      font-family:Consolas, monospace; font-size:11px;
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.88)); color:var(--text);
+      border:1px solid rgba(28,41,61,.08); border-radius:var(--radius); padding:8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    .filter-note {
+      font-size:10px; color:var(--text-dim); line-height:1.45;
+    }
+    #bench-workspace {
+      display:flex; flex-direction:column; min-height:0; overflow:hidden;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:calc(var(--radius) + 6px);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:0 18px 42px rgba(49,62,82,.10), inset 0 1px 0 rgba(255,255,255,.58);
+    }
+    #bench-toolbar {
+      display:flex; align-items:center; gap:6px; padding:8px 12px;
+      border-bottom:1px solid rgba(28,41,61,.06); background:rgba(255,255,255,.56); flex-shrink:0;
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+    #bench-toolbar .btn { width:auto; padding:4px 10px; font-size:11px; }
+    #bench-report-wrap {
+      flex:1; min-height:0; overflow:auto; padding:10px 12px;
+    }
+    #bench-report-text {
+      width:100%; height:100%; min-height:520px; resize:none;
+      font-family:Consolas, monospace; font-size:11px;
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.88)); color:var(--text);
+      border:1px solid rgba(28,41,61,.08); border-radius:var(--radius); padding:10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    #workshop-workspace {
+      display:flex; flex-direction:column; min-height:0; overflow:hidden;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:calc(var(--radius) + 6px);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:0 18px 42px rgba(49,62,82,.10), inset 0 1px 0 rgba(255,255,255,.58);
+    }
+    #workshop-toolbar {
+      display:flex; align-items:center; gap:6px; padding:8px 12px;
+      border-bottom:1px solid rgba(28,41,61,.06); background:rgba(255,255,255,.56); flex-shrink:0;
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+    #workshop-toolbar .btn { width:auto; padding:4px 10px; font-size:11px; }
+    #workshop-response-wrap {
+      flex:1; min-height:0; overflow:auto; padding:10px 12px;
+      display:flex; flex-direction:column; gap:10px;
+    }
+    #workshop-main-canvas {
+      width:100%; height:340px; border:1px solid var(--border);
+      border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.88));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    .workshop-metrics {
+      display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;
+    }
+    .workshop-stat {
+      padding:8px; border:1px solid rgba(28,41,61,.08); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.72));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
+    .workshop-stat .label {
+      font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.4px;
+    }
+    .workshop-stat .value {
+      margin-top:4px; font-size:13px; color:var(--text);
+      font-family:var(--font);
+    }
+    .workshop-note {
+      font-size:10px; color:var(--text-dim); line-height:1.45;
+    }
+    .workshop-list {
+      display:flex; flex-direction:column; gap:6px;
+      max-height:220px; overflow:auto;
+    }
+    .workshop-list-item {
+      padding:8px; border:1px solid rgba(28,41,61,.08); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.72));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84), 0 10px 18px rgba(49,62,82,.05);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
 
-    #hw-docs { display:none; flex:1; overflow-y:auto; padding:24px 40px; }
+    #hw-docs {
+      display:none; flex:1; overflow-y:auto; padding:20px 22px 30px;
+      max-width:1180px; width:100%; margin:0 auto;
+      position:relative; z-index:1;
+    }
     #hw-docs.active { display:block; }
-    #hw-docs h2 { color:var(--accent); margin:0 0 16px 0; font-size:20px; border-bottom:1px solid var(--border); padding-bottom:8px; }
-    #hw-docs h3 { color:var(--text); margin:20px 0 8px 0; font-size:15px; }
+    #hw-docs h2 {
+      color:var(--text); margin:0 0 18px 0; font-size:24px;
+      border-bottom:1px solid rgba(28,41,61,.08); padding-bottom:10px;
+      letter-spacing:-0.03em;
+    }
+    #hw-docs h3 { color:var(--text); margin:22px 0 10px 0; font-size:16px; letter-spacing:-0.02em; }
     #hw-docs p, #hw-docs li { color:var(--text-dim); font-size:13px; line-height:1.7; }
-    #hw-docs code { background:var(--card-bg); padding:2px 6px; border-radius:3px; font-size:12px; color:var(--accent); }
-    #hw-docs pre { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:14px; overflow-x:auto; margin:10px 0; }
+    #hw-docs code {
+      background:rgba(255,255,255,.88); padding:3px 7px; border-radius:10px; font-size:12px; color:var(--accent);
+      border:1px solid rgba(28,41,61,.06);
+    }
+    #hw-docs pre {
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.88));
+      border:1px solid rgba(28,41,61,.08); border-radius:var(--radius); padding:14px; overflow-x:auto; margin:12px 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
     #hw-docs pre code { background:none; padding:0; color:var(--text); font-size:12px; }
     #hw-docs table { border-collapse:collapse; width:100%; margin:10px 0; font-size:12px; }
-    #hw-docs th { text-align:left; padding:8px 12px; background:var(--card-bg); color:var(--text); border:1px solid var(--border); }
-    #hw-docs td { padding:8px 12px; border:1px solid var(--border); color:var(--text-dim); }
-    #hw-docs .warn { background:rgba(210,153,34,0.1); border-left:3px solid #d29922; padding:10px 14px; border-radius:4px; margin:10px 0; font-size:12px; color:var(--text-dim); }
-    #hw-docs .info { background:rgba(88,166,255,0.08); border-left:3px solid var(--accent); padding:10px 14px; border-radius:4px; margin:10px 0; font-size:12px; color:var(--text-dim); }
-    #hw-docs .section { margin-bottom:32px; }
+    #hw-docs th {
+      text-align:left; padding:9px 12px; background:rgba(255,255,255,.88); color:var(--text); border:1px solid rgba(28,41,61,.08);
+      text-transform:uppercase; letter-spacing:.05em; font-size:11px;
+    }
+    #hw-docs td { padding:9px 12px; border:1px solid rgba(28,41,61,.08); color:var(--text-dim); background:rgba(255,255,255,.62); }
+    #hw-docs .warn {
+      background:rgba(240,213,138,0.10); border-left:3px solid var(--yellow); padding:12px 14px; border-radius:14px; margin:12px 0; font-size:12px; color:var(--text-dim);
+      border:1px solid rgba(240,213,138,.12);
+    }
+    #hw-docs .info {
+      background:rgba(142,208,255,0.08); border-left:3px solid var(--accent); padding:12px 14px; border-radius:14px; margin:12px 0; font-size:12px; color:var(--text-dim);
+      border:1px solid rgba(142,208,255,.10);
+    }
+    #hw-docs .section {
+      margin-bottom:28px;
+      padding:18px 20px;
+      background:linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,250,253,.74));
+      border:1px solid rgba(28,41,61,.08);
+      border-radius:calc(var(--radius) + 4px);
+      box-shadow:0 18px 36px rgba(49,62,82,.08), inset 0 1px 0 rgba(255,255,255,.90);
+      backdrop-filter: blur(22px) saturate(150%);
+    }
     #hw-docs .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
     @media (max-width:800px) { #hw-docs .two-col { grid-template-columns:1fr; } }
 
     /* Tab switcher in topbar */
-    .tab-btn { padding:4px 12px; background:transparent; color:var(--text-dim);
-      border:1px solid var(--border); border-radius:var(--radius); cursor:pointer;
-      font-size:12px; font-family:var(--font); transition:all .15s; }
-    .tab-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+    .tab-btn {
+      padding:7px 14px; background:rgba(247,243,237,.82); color:var(--text-dim);
+      border:1px solid rgba(46,47,56,.08); border-radius:14px; cursor:pointer;
+      font-size:12px; font-family:var(--font); transition:all .15s;
+      backdrop-filter: blur(16px) saturate(150%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.86);
+      position:relative;
+      overflow:hidden;
+      isolation:isolate;
+    }
+    .tab-btn::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, rgba(88,111,218,.12), rgba(255,255,255,0));
+      transform:translateX(-102%);
+      transition:transform .28s ease;
+      z-index:-1;
+    }
+    .tab-btn:hover {
+      color:var(--text);
+      border-color:rgba(46,47,56,.12);
+      transform:translateY(-1px);
+    }
+    .tab-btn:hover::before {
+      transform:translateX(0);
+    }
+    .tab-btn.active {
+      background:linear-gradient(180deg, rgba(88,111,218,.18), rgba(88,111,218,.08));
+      color:var(--text); border-color:rgba(88,111,218,.22);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 10px 20px rgba(74,67,60,.08);
+    }
 
     /* Palette panel */
     .palette-block {
       padding:8px 10px; margin-bottom:6px; border-radius:var(--radius);
-      border:2px solid var(--border); background:var(--bg);
+      border:1px solid rgba(28,41,61,.08); background:rgba(255,255,255,.80);
       cursor:grab; user-select:none; font-size:11px; font-weight:600;
       font-family:var(--font); display:flex; align-items:center; gap:6px;
-      transition:border-color .15s, transform .1s;
+      transition:border-color .15s, transform .1s, background .18s;
       touch-action:none; /* required for pointer events on touch devices */
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.90), 0 8px 16px rgba(49,62,82,.05);
     }
-    .palette-block:hover { border-color:var(--accent); transform:translateX(2px); }
+    .palette-block:hover { border-color:rgba(79,124,255,.24); background:rgba(255,255,255,.96); transform:translateX(2px); }
     .palette-block:active { cursor:grabbing; }
     .palette-block .block-icon {
       width:12px; height:12px; border-radius:3px; flex-shrink:0;
@@ -568,25 +1434,32 @@
     /* Workspace */
     #workspace-toolbar {
       display:flex; align-items:center; gap:6px; padding:8px 12px;
-      border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0;
+      border-bottom:1px solid rgba(28,41,61,.06); background:rgba(255,255,255,.56); flex-shrink:0;
+      backdrop-filter: blur(18px) saturate(150%);
     }
-    #workspace-toolbar select { background:var(--bg); color:var(--text);
-      border:1px solid var(--border); border-radius:var(--radius);
-      padding:4px 8px; font-size:12px; font-family:var(--font); flex:1; }
+    #workspace-toolbar select { background:rgba(255,255,255,.94); color:var(--text);
+      border:1px solid rgba(28,41,61,.10); border-radius:14px;
+      padding:7px 10px; font-size:12px; font-family:var(--font); flex:1; }
     #workspace-toolbar .btn { width:auto; padding:4px 10px; font-size:11px; }
 
     #workspace-area {
       flex:1; display:flex; flex-direction:column; overflow:hidden;
       background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:calc(var(--radius) + 6px);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:0 18px 42px rgba(49,62,82,.10), inset 0 1px 0 rgba(255,255,255,.58);
     }
 
     /* Node-graph canvas container */
     #node-canvas-container {
       flex:1; overflow:hidden; position:relative; cursor:grab;
       background:
-        repeating-linear-gradient(var(--border) 0px, var(--border) 1px, transparent 1px, transparent 30px),
-        repeating-linear-gradient(90deg, var(--border) 0px, var(--border) 1px, transparent 1px, transparent 30px),
-        var(--bg);
+        radial-gradient(circle at top left, rgba(79,124,255,.08), transparent 28%),
+        repeating-linear-gradient(rgba(28,41,61,.06) 0px, rgba(28,41,61,.06) 1px, transparent 1px, transparent 30px),
+        repeating-linear-gradient(90deg, rgba(28,41,61,.06) 0px, rgba(28,41,61,.06) 1px, transparent 1px, transparent 30px),
+        rgba(255,255,255,.76);
       background-size:30px 30px;
     }
     #node-canvas-container.panning { cursor:grabbing; }
@@ -610,16 +1483,17 @@
     /* Node blocks on canvas */
     .node-block {
       position:absolute; z-index:2; min-width:140px; max-width:220px;
-      background:var(--surface); border:2px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,249,252,.84)); border:1px solid rgba(28,41,61,.08);
       border-radius:var(--radius); font-family:var(--font); font-size:10px;
-      user-select:none; box-shadow:0 2px 8px rgba(0,0,0,.3);
+      user-select:none; box-shadow:0 18px 32px rgba(49,62,82,.08), inset 0 1px 0 rgba(255,255,255,.92);
       transition:border-color .1s;
+      backdrop-filter: blur(18px) saturate(150%);
     }
-    .node-block:hover { border-color:var(--accent); }
-    .node-block.selected { border-color:var(--accent); box-shadow:0 0 12px rgba(88,166,255,0.3); }
+    .node-block:hover { border-color:rgba(79,124,255,.26); }
+    .node-block.selected { border-color:rgba(79,124,255,.34); box-shadow:0 0 0 1px rgba(79,124,255,.10), 0 22px 40px rgba(49,62,82,.10); }
     .node-block.running { animation:node-pulse .5s infinite; }
     @keyframes node-pulse {
-      0%,100%{box-shadow:0 0 6px rgba(63,185,80,0.3)} 50%{box-shadow:0 0 16px rgba(63,185,80,0.6)}
+      0%,100%{box-shadow:0 0 6px rgba(47,154,102,0.22)} 50%{box-shadow:0 0 16px rgba(47,154,102,0.38)}
     }
 
     .node-header {
@@ -639,8 +1513,8 @@
     .node-body { padding:5px 8px; }
     .node-body label { color:var(--text-dim); display:flex; align-items:center; gap:3px; margin-bottom:2px; }
     .node-body input, .node-body select {
-      background:var(--bg); color:var(--text); border:1px solid var(--border);
-      border-radius:3px; padding:1px 3px; font-size:10px; font-family:var(--font); width:50px;
+      background:rgba(255,255,255,.96); color:var(--text); border:1px solid rgba(28,41,61,.10);
+      border-radius:8px; padding:3px 5px; font-size:10px; font-family:var(--font); width:50px;
     }
     .node-body select { width:auto; }
 
@@ -654,7 +1528,7 @@
     .node-port.port-out { flex-direction:row-reverse; }
     .port-dot {
       width:10px; height:10px; border-radius:50%;
-      border:2px solid var(--text-dim); background:var(--bg);
+      border:2px solid rgba(111,125,146,.86); background:#ffffff;
       cursor:crosshair; flex-shrink:0; transition:all .15s;
       position:relative; z-index:5;
     }
@@ -665,16 +1539,19 @@
     /* Zoom indicator */
     #zoom-indicator {
       position:absolute; bottom:8px; right:8px; font-size:10px;
-      color:var(--text-dim); background:var(--surface); padding:2px 8px;
-      border-radius:var(--radius); border:1px solid var(--border); z-index:5;
+      color:var(--text-dim); background:rgba(255,255,255,.88); padding:4px 9px;
+      border-radius:999px; border:1px solid rgba(28,41,61,.08); z-index:5;
       pointer-events:none;
+      backdrop-filter: blur(16px) saturate(150%);
     }
 
     /* 3D arm controls hint */
     #arm-controls-hint {
       position:absolute; bottom:6px; right:8px; font-size:9px;
-      color:var(--text-dim); background:rgba(0,0,0,0.5); padding:3px 8px;
-      border-radius:var(--radius); pointer-events:none; z-index:2;
+      color:var(--text-dim); background:rgba(255,255,255,.84); padding:4px 9px;
+      border-radius:999px; pointer-events:none; z-index:2;
+      border:1px solid rgba(28,41,61,.08);
+      backdrop-filter: blur(16px) saturate(150%);
     }
 
     /* Gesture mapping rows */
@@ -686,16 +1563,18 @@
       flex:1; text-transform:capitalize; font-weight:600;
     }
     .gmap-row select {
-      background:var(--bg); color:var(--text); border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.86)); color:var(--text); border:1px solid rgba(28,41,61,.10);
       border-radius:var(--radius); padding:3px 6px; font-size:10px;
       font-family:var(--font); width:120px;
+      backdrop-filter: blur(14px) saturate(145%);
     }
 
     /* Execution log */
     #exec-log {
-      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,248,252,.82)); border:1px solid rgba(28,41,61,.08); border-radius:var(--radius);
       padding:6px; font-family:monospace; font-size:10px; color:var(--text-dim);
       height:120px; overflow-y:auto;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
     }
     .exec-line { margin-bottom:1px; }
     .exec-line.ok { color:var(--green); }
@@ -705,20 +1584,26 @@
     /* Export code modal */
     #code-modal {
       display:none; position:fixed; inset:0; z-index:100;
-      background:rgba(0,0,0,0.7); align-items:center; justify-content:center;
+      background:rgba(23, 31, 45, 0.22); align-items:center; justify-content:center;
+      backdrop-filter: blur(18px) saturate(130%);
     }
     #code-modal.active { display:flex; }
     #code-modal-inner {
-      background:var(--surface); border:2px solid var(--border); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.94), rgba(248,250,253,.82));
+      border:1px solid rgba(28,41,61,.10); border-radius:calc(var(--radius) + 4px);
       width:700px; max-width:90vw; max-height:80vh; display:flex; flex-direction:column;
+      box-shadow:0 28px 80px rgba(49,62,82,.16), inset 0 1px 0 rgba(255,255,255,.92);
+      backdrop-filter: blur(28px) saturate(165%);
+      overflow:hidden;
     }
     #code-modal-header {
-      display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(28,41,61,.08);
       font-weight:700; font-size:14px;
+      background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,253,.70));
     }
     #code-modal-header .spacer { flex:1; }
     #code-output {
-      flex:1; background:var(--bg); color:#e6db74; font-family:monospace; font-size:12px;
+      flex:1; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,253,.90)); color:#223042; font-family:monospace; font-size:12px;
       padding:12px; border:none; resize:none; overflow:auto; min-height:300px;
     }
   </style>
@@ -733,14 +1618,20 @@
   <h1>KYMA</h1>
   <span id="ws-dot" title="WebSocket status"></span>
   <span id="state-badge">idle</span>
+  <span id="source-badge" class="hardware">hardware</span>
+  <span id="profile-badge">SIGNAL</span>
   <div style="display:flex;gap:2px;margin-left:12px">
     <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
     <button class="tab-btn" id="tab-blocks" onclick="switchTab('blocks')">Blocks</button>
+    <button class="tab-btn" id="tab-filters" onclick="switchTab('filters')">Filter Lab</button>
+    <button class="tab-btn" id="tab-workshop" onclick="switchTab('workshop')">Signal Workshop</button>
+    <button class="tab-btn" id="tab-bench" onclick="switchTab('bench')">Bench Report</button>
     <button class="tab-btn" id="tab-hwdocs" onclick="switchTab('hwdocs')">Arduino Guide</button>
+    <button class="tab-btn" id="btn-tour" title="Guided tour">Tour</button>
   </div>
   <div class="spacer"></div>
   <select id="theme-select">
-    <option value="dark">DARK</option>
+    <option value="dark">NEUTRAL</option>
     <option value="retro">RETRO</option>
     <option value="mario">MARIO</option>
     <option value="gameboy">GAMEBOY</option>
@@ -748,6 +1639,16 @@
   </select>
   <button id="btn-home" class="btn" style="width:auto;padding:6px 14px">HOME</button>
   <button id="btn-estop">E-STOP</button>
+</div>
+
+<div id="workspace-bar">
+  <div id="workspace-tabs">
+    <button class="workspace-btn active" id="workspace-live" onclick="switchWorkspace('live')">Live</button>
+    <button class="workspace-btn" id="workspace-record" onclick="switchWorkspace('record')">Record</button>
+    <button class="workspace-btn" id="workspace-train" onclick="switchWorkspace('train')">Train</button>
+    <button class="workspace-btn" id="workspace-control" onclick="switchWorkspace('control')">Control</button>
+  </div>
+  <div id="workspace-summary">Live monitoring, quality review, and profile-specific visualization.</div>
 </div>
 
 <!-- ================================================================
@@ -758,59 +1659,403 @@
   <!-- LEFT: all the controls -->
   <div class="panel">
 
-    <!-- stream start/stop + calibrate + record session -->
-    <div class="card">
-      <h3>Stream</h3>
-      <div style="margin-bottom:6px">
-        <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:3px">Cyton Port</label>
-        <div style="display:flex;gap:4px;margin-bottom:4px">
-          <select id="cyton-port" style="flex:1;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:var(--font)">
-            <option value="">Detecting...</option>
+    <!-- signal profile selection -->
+    <div class="card card-collapsible collapsed" id="card-signal-type" data-collapse-key="signal-type" data-workspaces="live,record,train,control">
+      <h3>Signal Type</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <select id="profile-select" class="setup-input">
+            <option value="">Loading...</option>
           </select>
-          <button id="btn-refresh-ports" class="btn" style="width:auto;padding:3px 8px;font-size:10px">Scan</button>
+          <div id="profile-summary" class="setup-note">
+            <div class="setup-meta">
+              <span>Loading</span>
+              <span>Profile</span>
+            </div>
+            <div class="setup-copy">Loading signal profile.</div>
+          </div>
         </div>
-        <label style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:3px">Arduino Port (optional)</label>
-        <select id="arduino-port" style="width:100%;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:var(--font)">
-          <option value="">None</option>
-        </select>
       </div>
-      <button id="btn-stream" class="btn primary">Start Stream</button>
-      <div style="margin-top:6px;display:flex;gap:6px">
-        <button id="btn-calibrate" class="btn" style="flex:1">Calibrate</button>
-        <button id="btn-record-session" class="btn" style="flex:1">Rec Session</button>
+    </div>
+
+    <!-- stream start/stop + calibrate + record session -->
+    <div class="card card-collapsible collapsed" id="card-stream" data-collapse-key="stream" data-workspaces="live,record,control">
+      <h3>Stream</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <div class="setup-title">Data Source</div>
+          <label class="setup-label">Source</label>
+          <select id="stream-source" class="setup-input">
+            <option value="hardware">Live Hardware</option>
+            <option value="synthetic">Synthetic</option>
+            <option value="playback">Session Playback</option>
+            <option value="lsl">LSL Input</option>
+          </select>
+          <div id="stream-mode-hint" style="margin-top:4px;font-size:10px;color:var(--text-dim)">
+            Select a signal type, then choose hardware, synthetic, playback, or LSL.
+          </div>
+        </div>
+
+        <div id="hardware-setup" class="setup-panel">
+            <div class="setup-title">Hardware Setup</div>
+            <label class="setup-label">Cyton Port</label>
+            <div class="setup-inline">
+            <select id="cyton-port" class="setup-input" style="flex:1">
+              <option value="">Detecting...</option>
+            </select>
+            <button id="btn-refresh-ports" class="btn" style="width:auto;padding:3px 8px;font-size:10px">Scan</button>
+            </div>
+            <label class="setup-label">Arduino Port (optional)</label>
+            <select id="arduino-port" class="setup-input">
+              <option value="">None</option>
+            </select>
+        </div>
+
+        <div id="lsl-input-setup" class="setup-panel" style="display:none">
+            <div class="setup-title">LSL Input</div>
+            <div id="lsl-input-status" class="setup-note">
+              <div class="setup-meta">
+                <span>Checking</span>
+                <span>LSL Input</span>
+              </div>
+              <div class="setup-copy">Scanning for external LSL streams.</div>
+            </div>
+            <label class="setup-label">Signal Stream</label>
+            <div class="setup-inline">
+              <select id="lsl-input-stream" class="setup-input" style="flex:1">
+                <option value="">No streams discovered</option>
+              </select>
+              <button id="btn-refresh-lsl-inputs" class="btn" style="width:auto;padding:3px 8px;font-size:10px">Scan</button>
+            </div>
+        </div>
+
+        <div id="playback-setup" class="setup-panel" style="display:none">
+            <div class="setup-title">Playback Setup</div>
+            <label class="setup-label">Recorded Session</label>
+            <select id="playback-session" class="setup-input">
+              <option value="">No sessions loaded</option>
+            </select>
+            <label class="setup-label">Playback Rate</label>
+            <select id="playback-rate" class="setup-input">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1.0x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2.0x</option>
+            </select>
+            <div style="font-size:10px;color:var(--text-dim);margin-top:4px">
+              Playback loops until stopped.
+            </div>
+        </div>
+
+        <div class="stream-actions">
+        <button id="btn-stream" class="btn primary">Start Stream</button>
+        <div class="stream-actions-row">
+          <button id="btn-calibrate" class="btn" style="flex:1">Calibrate</button>
+          <button id="btn-clear-stream" class="btn danger" style="flex:1">Clear Stream</button>
+        </div>
+        </div>
       </div>
-      <div style="margin-top:6px">
-        <button id="btn-clear-stream" class="btn danger">Clear Stream</button>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-session-metadata" data-collapse-key="session-metadata" data-workspaces="record">
+      <h3>Session Metadata</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <label class="setup-label">Label</label>
+          <input id="session-label" class="setup-input" type="text" placeholder="rest">
+          <div class="setup-inline">
+            <div style="flex:1">
+              <label class="setup-label">Subject</label>
+              <input id="session-subject" class="setup-input" type="text" placeholder="sub-01">
+            </div>
+            <div style="flex:1">
+              <label class="setup-label">Condition</label>
+              <input id="session-condition" class="setup-input" type="text" placeholder="baseline">
+            </div>
+          </div>
+          <label class="setup-label">Notes</label>
+          <input id="session-notes" class="setup-input" type="text" placeholder="operator notes">
+          <button id="btn-record-session" class="btn" style="margin-top:6px">Rec Session</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-protocol-template" data-collapse-key="protocol-template" data-workspaces="record">
+      <h3>Protocol Template</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <label class="setup-label">Template</label>
+          <select id="protocol-template" class="setup-input">
+            <option value="">No templates loaded</option>
+          </select>
+          <label class="setup-label">Run ID</label>
+          <input id="protocol-run-id" class="setup-input" type="text" placeholder="auto-generated on first trial">
+          <div id="protocol-summary" class="setup-note" style="margin-top:4px">
+            Load a signal profile to see the recommended protocol templates.
+          </div>
+          <div class="session-import-actions" style="margin-top:6px">
+            <button id="btn-protocol-next" class="btn success">Start Next Trial</button>
+            <button id="btn-protocol-reset" class="btn">Reset Run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-eeg-experiments" data-collapse-key="eeg-experiments" data-workspaces="record">
+      <h3>EEG Experiments</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <label class="setup-label">Research Preset</label>
+          <select id="eeg-experiment-select" class="setup-input">
+            <option value="">No EEG presets loaded</option>
+          </select>
+          <div id="eeg-experiment-summary" class="setup-note" style="margin-top:4px">
+            Switch Signal Type to EEG to use research recording presets.
+          </div>
+          <div class="session-import-actions" style="margin-top:6px">
+            <button id="btn-eeg-experiment-apply" class="btn">Apply To Session</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-eeg-markers" data-collapse-key="eeg-markers" data-workspaces="record">
+      <h3>Stimulus / Markers</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <div id="eeg-marker-helper-summary" class="setup-note" style="margin-top:0">
+            Switch Signal Type to EEG and choose a research preset to see marker names and block structure.
+          </div>
+          <div class="setup-title" style="margin-top:8px">Marker Strategy</div>
+          <div id="eeg-marker-strategy" class="setup-copy">--</div>
+          <div class="setup-title" style="margin-top:8px">Expected Marker Names</div>
+          <div id="eeg-marker-list" class="setup-copy">--</div>
+          <div class="setup-title" style="margin-top:8px">Suggested Block Structure</div>
+          <div id="eeg-block-structure" class="setup-copy">--</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-lsl-marker-tester" data-collapse-key="lsl-marker-tester" data-workspaces="record">
+      <h3>LSL Marker Tester</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <label class="setup-label">Preset Marker</label>
+          <select id="lsl-marker-select" class="setup-input">
+            <option value="">No markers loaded</option>
+          </select>
+          <label class="setup-label">Marker Event</label>
+          <input id="lsl-marker-event" class="setup-input" type="text" placeholder="p300/target">
+          <label class="setup-label">Payload JSON (optional)</label>
+          <textarea id="lsl-marker-payload" class="setup-input" rows="4" style="resize:vertical;min-height:72px" placeholder='{"trial":1,"target":true}'></textarea>
+          <div id="lsl-marker-status" class="setup-note" style="margin-top:4px">
+            Start LSL output in the Control workspace, then send a test marker from here.
+          </div>
+          <div class="session-import-actions" style="margin-top:6px">
+            <button id="btn-send-lsl-marker" class="btn">Send Test Marker</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- classifier picker + per-gesture recording buttons + fit/clear -->
-    <div class="card">
+    <div class="card card-collapsible collapsed" id="card-training" data-collapse-key="training" data-workspaces="train">
       <h3>Training</h3>
-      <select id="clf-select">
-        <option value="LDA">LDA (fast, feature-based)</option>
-        <option value="TCN">TCN (temporal CNN, PyTorch)</option>
-        <option value="Mamba">Mamba (state space, PyTorch)</option>
-      </select>
-      <div id="gesture-list"></div>
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button id="btn-fit" class="btn success" style="flex:1">Train Model</button>
-        <button id="btn-clear-train" class="btn danger" style="flex:1">Clear</button>
+      <div class="card-body">
+        <select id="clf-select">
+          <option value="LDA">LDA (fast, feature-based)</option>
+          <option value="TCN">TCN (temporal CNN, PyTorch)</option>
+          <option value="Mamba">Mamba (state space, PyTorch)</option>
+        </select>
+        <div id="gesture-list"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button id="btn-fit" class="btn success" style="flex:1">Train Model</button>
+          <button id="btn-clear-train" class="btn danger" style="flex:1">Clear</button>
+        </div>
+        <div id="train-status" style="margin-top:6px;font-size:11px;color:var(--text-dim)"></div>
       </div>
-      <div id="train-status" style="margin-top:6px;font-size:11px;color:var(--text-dim)"></div>
     </div>
 
     <!-- calibration steps get printed here in real time -->
-    <div class="card">
+    <div class="card card-collapsible collapsed" data-collapse-key="calibration-log" data-workspaces="live,record,train">
       <h3>Calibration Log</h3>
-      <div id="cal-log">--</div>
+      <div class="card-body">
+        <div id="calibration-summary" class="setup-note" style="margin-bottom:6px">
+          Loading calibration protocol.
+        </div>
+        <div id="cal-log">--</div>
+      </div>
     </div>
 
     <!-- past sessions from disk -->
-    <div class="card">
+    <div class="card card-collapsible collapsed" data-collapse-key="sessions" data-workspaces="record,train">
       <h3>Sessions</h3>
-      <div id="session-list" style="max-height:100px;overflow-y:auto"></div>
-      <button id="btn-sessions-refresh" class="btn" style="margin-top:6px">Refresh</button>
+      <div class="card-body">
+        <div id="session-list" style="max-height:120px;overflow-y:auto"></div>
+        <button id="btn-sessions-refresh" class="btn" style="margin-top:6px">Refresh</button>
+        <div class="setup-panel" style="margin-top:6px">
+          <div class="setup-title">XDF Import</div>
+          <label class="setup-label">XDF File Path</label>
+          <input id="xdf-path" class="setup-input" type="text" placeholder="C:\\recordings\\session.xdf">
+          <label class="setup-label">Signal Stream</label>
+          <select id="xdf-stream" class="setup-input">
+            <option value="">Inspect an XDF file first</option>
+          </select>
+          <div id="xdf-status" class="setup-note" style="margin-top:4px">
+            Inspect an XDF file, then import the desired numeric stream as a replayable session.
+          </div>
+          <div class="session-import-actions">
+            <button id="btn-xdf-inspect" class="btn">Inspect</button>
+            <button id="btn-xdf-import" class="btn success">Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" data-collapse-key="subjects" data-workspaces="record,train">
+      <h3>Subjects</h3>
+      <div class="card-body">
+        <label class="setup-label">Saved Subjects</label>
+        <select id="subject-registry-select" class="setup-input">
+          <option value="">No subjects saved</option>
+        </select>
+        <div class="session-import-actions">
+          <button id="btn-subject-apply" class="btn">Apply To Session</button>
+          <button id="btn-subject-new" class="btn">New</button>
+        </div>
+        <div class="setup-panel" style="margin-top:6px">
+          <div class="setup-title">Registry Record</div>
+          <label class="setup-label">Subject ID</label>
+          <input id="subject-registry-id" class="setup-input" type="text" placeholder="sub-01">
+          <label class="setup-label">Display Name</label>
+          <input id="subject-registry-name" class="setup-input" type="text" placeholder="Operator-facing label">
+          <div class="setup-inline">
+            <div style="flex:1">
+              <label class="setup-label">Cohort</label>
+              <input id="subject-registry-cohort" class="setup-input" type="text" placeholder="control">
+            </div>
+            <div style="flex:1">
+              <label class="setup-label">Handedness</label>
+              <select id="subject-registry-handedness" class="setup-input">
+                <option value="">Unknown</option>
+                <option value="right">Right</option>
+                <option value="left">Left</option>
+                <option value="ambidextrous">Ambidextrous</option>
+              </select>
+            </div>
+          </div>
+          <label class="setup-label">Notes</label>
+          <input id="subject-registry-notes" class="setup-input" type="text" placeholder="screening or placement notes">
+          <button id="btn-subject-save" class="btn success" style="margin-top:6px">Save Subject</button>
+          <div id="subject-registry-status" class="setup-note" style="margin-top:6px">
+            Saved subjects feed leave-one-subject-out evaluation and session tagging.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-research" data-collapse-key="research" data-workspaces="train">
+      <h3>Datasets &amp; Experiments</h3>
+      <div class="card-body">
+        <div id="dataset-status" class="setup-note" style="margin-bottom:6px">
+          Select sessions in the Sessions card to build a dataset.
+        </div>
+        <div class="setup-panel">
+          <div class="setup-title">Dataset</div>
+          <label class="setup-label">Name</label>
+          <input id="dataset-name" class="setup-input" type="text" placeholder="baseline_apr20">
+          <div class="session-import-actions">
+            <button id="btn-dataset-create" class="btn">Create From Selected</button>
+            <button id="btn-research-refresh" class="btn">Refresh</button>
+          </div>
+          <label class="setup-label" style="margin-top:6px">Saved Datasets</label>
+          <select id="dataset-select" class="setup-input">
+            <option value="">No datasets</option>
+          </select>
+          <div id="dataset-list" style="max-height:100px;overflow-y:auto;margin-top:6px"></div>
+        </div>
+        <div class="setup-panel" style="margin-top:6px">
+          <div class="setup-title">Offline Experiment</div>
+          <label class="setup-label">Classifier</label>
+          <select id="experiment-clf" class="setup-input">
+            <option value="LDA">LDA</option>
+            <option value="TCN">TCN</option>
+            <option value="Mamba">Mamba</option>
+          </select>
+          <label class="setup-label">Validation Split</label>
+          <select id="experiment-split" class="setup-input">
+            <option value="temporal_holdout">Temporal holdout</option>
+            <option value="random_window">Random windows</option>
+            <option value="leave_one_session_out">Leave one session out</option>
+            <option value="leave_one_subject_out">Leave one subject out</option>
+          </select>
+          <label class="setup-label">Holdout Fraction</label>
+          <input id="experiment-holdout" class="setup-input" type="number" min="0.10" max="0.50" step="0.05" value="0.25">
+          <label class="setup-label">Gap (s)</label>
+          <input id="experiment-gap" class="setup-input" type="number" min="0.00" max="2.00" step="0.05" value="0.20">
+          <label class="setup-label">Notes</label>
+          <input id="experiment-notes" class="setup-input" type="text" placeholder="baseline offline run">
+          <button id="btn-experiment-run" class="btn success" style="margin-top:6px">Run Experiment</button>
+          <div id="experiment-status" class="setup-note" style="margin-top:6px">
+            Choose a saved dataset, then run an offline experiment.
+          </div>
+          <div id="experiment-list" style="max-height:100px;overflow-y:auto;margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-lsl" data-collapse-key="lsl" data-workspaces="control,live">
+      <h3>LSL Output</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <div id="lsl-status" class="setup-note">
+            <div class="setup-meta">
+              <span>Checking</span>
+              <span>LSL</span>
+            </div>
+            <div class="setup-copy">Checking Lab Streaming Layer availability.</div>
+          </div>
+          <label class="setup-label">Stream Name</label>
+          <input id="lsl-name" class="setup-input" type="text" placeholder="KYMA_EMG">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);margin-top:6px">
+            <input id="lsl-markers" type="checkbox" checked>
+            <span>Publish marker stream</span>
+          </label>
+        </div>
+        <button id="btn-lsl" class="btn" style="margin-top:6px">Start LSL</button>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-osc" data-collapse-key="osc" data-workspaces="control,live">
+      <h3>OSC Output</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <div id="osc-status" class="setup-note">
+            <div class="setup-meta">
+              <span>Checking</span>
+              <span>OSC</span>
+            </div>
+            <div class="setup-copy">Checking OSC transport availability.</div>
+          </div>
+          <div class="setup-inline">
+            <div style="flex:1">
+              <label class="setup-label">Host</label>
+              <input id="osc-host" class="setup-input" type="text" placeholder="127.0.0.1">
+            </div>
+            <div style="width:92px">
+              <label class="setup-label">Port</label>
+              <input id="osc-port" class="setup-input" type="number" min="1" max="65535" value="9000">
+            </div>
+          </div>
+          <label class="setup-label">Prefix</label>
+          <input id="osc-prefix" class="setup-input" type="text" placeholder="/kyma">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);margin-top:6px">
+            <input id="osc-events" type="checkbox" checked>
+            <span>Mirror state and prediction events</span>
+          </label>
+        </div>
+        <button id="btn-osc" class="btn" style="margin-top:6px">Start OSC</button>
+      </div>
     </div>
   </div>
 
@@ -819,7 +2064,8 @@
   <!-- CENTER: emg waveforms on top, 3d arm on bottom -->
   <div id="center">
     <div id="emg-header">
-      <span>LIVE EMG -- 8 channels</span>
+      <span id="signal-header-label">LIVE BIOSIGNAL -- 8 channels</span>
+      <span id="scope-status-chip" class="scope-status-chip">Live</span>
       <span id="fps-label" style="margin-left:auto">0 fps</span>
     </div>
     <div id="canvas-container">
@@ -833,10 +2079,11 @@
     <!-- bottom viewport: hand render (default) or 3D robotic arm (test view) -->
     <div id="viz-section">
       <div id="viz-tabs">
-        <button class="viz-tab active" data-viz="hand" onclick="switchViz('hand')">Hand</button>
-        <button class="viz-tab" data-viz="arm" onclick="switchViz('arm')">Robotic Arm</button>
+        <button id="viz-tab-hand" class="viz-tab active" data-viz="hand" onclick="switchViz('hand')">Hand</button>
+        <button id="viz-tab-arm" class="viz-tab" data-viz="arm" onclick="switchViz('arm')">Robotic Arm</button>
+        <button id="viz-tab-eeg" class="viz-tab" data-viz="eeg" onclick="switchViz('eeg')" style="display:none">EEG Brain</button>
         <div id="arm-gesture-label" style="position:static;margin-left:auto">
-          GESTURE: <span id="arm-gesture-name">--</span>
+          ARM POSE: <span id="arm-gesture-name">--</span>
         </div>
       </div>
       <div id="viz-body">
@@ -864,24 +2111,50 @@
           </div>
         </div>
 
+        <div id="eeg-brain-section" style="display:none">
+          <div id="eeg-brain-note">Live EEG topomap and sensor layout from MNE. Use the Nilearn reference view only if you want a separate electrode-on-brain reference page.</div>
+          <div class="viz-panel-grid">
+            <div class="viz-figure">
+              <h4>Live Scalp Topomap</h4>
+              <p id="eeg-brain-band">Waiting for EEG data.</p>
+              <img id="eeg-brain-topomap" alt="EEG topomap" style="display:none">
+            </div>
+            <div class="viz-figure">
+              <h4>Sensor Layout</h4>
+              <p>Standard Fp1 / Fp2 / C3 / C4 / P3 / P4 / O1 / O2 montage.</p>
+              <img id="eeg-brain-sensors" alt="EEG sensor layout" style="display:none">
+            </div>
+          </div>
+          <div class="eeg-brain-actions">
+            <a id="eeg-brain-marker-link" class="eeg-brain-link" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Open Marker Reference</a>
+            <div id="eeg-brain-marker-summary">This opens Nilearn in a separate page. It is a spatial reference only, not source localization.</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
     <!-- collapsible pipeline diagram -->
-    <div id="pipeline-toggle" onclick="togglePipeline()">PIPELINE DIAGRAM [click to expand]</div>
-    <div id="pipeline-section">
+    <div id="pipeline-toggle" data-workspaces="live,train" onclick="togglePipeline()">PIPELINE DIAGRAM [click to expand]</div>
+    <div id="pipeline-section" data-workspaces="live,train">
+      <div style="font-size:9px;color:var(--text-dim);line-height:1.4;margin-bottom:8px">
+        Current configuration overview. EMG remains the robotic-arm demo, while all built-in biosignal profiles now support trainable decoders, with live analyzers available before a model is trained.
+      </div>
       <div class="pipe-flow">
-        <div class="pipe-block"><h4>Electrodes</h4><p>8-ch sEMG<br>Ring placement<br>250 Hz</p></div>
+        <div class="pipe-block"><h4>Signal Input</h4><p>Profile-selectable<br>EMG demo: forearm<br>8 channels shown</p></div>
         <div class="pipe-arrow">&gt;</div>
-        <div class="pipe-block"><h4>BrainFlow</h4><p>Bandpass 20-500Hz<br>Notch 50/60Hz<br>Detrend</p></div>
+        <div class="pipe-block"><h4>Acquisition</h4><p>Cyton / synthetic<br>250 Hz demo path<br>ring buffer</p></div>
         <div class="pipe-arrow">&gt;</div>
-        <div class="pipe-block"><h4>Windowing</h4><p>200ms window<br>50ms step<br>75% overlap</p></div>
+        <div class="pipe-block"><h4>Conditioning</h4><p>Profile-specific<br>filters + detrend<br>200 ms / 50 ms</p></div>
         <div class="pipe-arrow">&gt;</div>
-        <div class="pipe-block"><h4>Features</h4><p>LDA: MAV,RMS,WL<br>ZC,SSC (40-dim)<br>TCN/Mamba: raw</p></div>
+        <div class="pipe-block"><h4>Metrics</h4><p>RMS, MAV, WL<br>band / rate / drift<br>profile-dependent</p></div>
         <div class="pipe-arrow">&gt;</div>
-        <div class="pipe-block"><h4>Classifier</h4><p>LDA / TCN /<br>Mamba SSM<br>-&gt; gesture</p></div>
+        <div class="pipe-block"><h4>Decoder</h4><p>Trainable profile<br>or live analyzer<br>-&gt; decoded label</p></div>
         <div class="pipe-arrow">&gt;</div>
-        <div class="pipe-block"><h4>Arduino</h4><p>Binary protocol<br>8 Servos<br>Pins 2-9</p></div>
+        <div class="pipe-block"><h4>Outputs</h4><p>Dashboard / blocks<br>Arduino arm demo<br>APIs + logging</p></div>
+      </div>
+      <div style="font-size:9px;color:var(--text-dim);line-height:1.4;margin:8px 0 4px">
+        Current decoder options for the trainable profiles. Non-trainable profiles continue to use live rule-based analyzers in this build.
       </div>
       <table class="pipe-table">
         <thead><tr>
@@ -900,22 +2173,27 @@
 
   <!-- RIGHT: readouts organized by priority -->
   <div class="panel">
-    <!-- live prediction - always visible, most important -->
-    <div class="card">
-      <h3>Prediction</h3>
-      <div id="pred-gesture">--</div>
-      <div id="pred-confidence">Confidence: --</div>
-      <div id="conf-bar-bg"><div id="conf-bar"></div></div>
+    <!-- live decoded state - always visible, most important -->
+    <div class="card card-collapsible collapsed" id="card-decoded-output" data-collapse-key="decoded-output" data-workspaces="live,record,control">
+      <h3>Decoded Output</h3>
+      <div class="card-body">
+        <div id="pred-gesture">--</div>
+        <div id="pred-confidence">Confidence: --</div>
+        <div id="pred-summary">Waiting for live signal analysis.</div>
+        <div id="conf-bar-bg"><div id="conf-bar"></div></div>
+      </div>
     </div>
 
     <!-- per-channel signal strength bars -->
-    <div class="card">
-      <h3>RMS per Channel</h3>
-      <div id="rms-bars"></div>
+    <div class="card card-collapsible collapsed" id="card-channel-activity" data-collapse-key="channel-activity" data-workspaces="live,record">
+      <h3 id="metric-card-title">Channel Activity</h3>
+      <div class="card-body">
+        <div id="rms-bars"></div>
+      </div>
     </div>
 
     <!-- signal quality + fatigue combined -->
-    <div class="card card-collapsible">
+    <div class="card card-collapsible collapsed" data-collapse-key="signal-health" data-workspaces="live,record">
       <h3>Signal Health</h3>
       <div class="card-body">
         <div id="quality-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px"></div>
@@ -927,17 +2205,89 @@
       </div>
     </div>
 
-    <!-- gesture history timeline -->
-    <div class="card card-collapsible">
-      <h3>Gesture Timeline</h3>
+    <div class="card card-collapsible collapsed" id="card-spectrum-noise" data-collapse-key="spectrum-noise" data-workspaces="live,record">
+      <h3>Spectrum &amp; Noise</h3>
+      <div class="card-body">
+        <canvas id="spectrum-canvas" width="240" height="120" style="width:100%;height:120px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)"></canvas>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;font-size:10px;color:var(--text-dim)">
+          <div style="display:flex;justify-content:space-between;gap:8px"><span>50 Hz Hum</span><span id="hum50-val">-- dB</span></div>
+          <div style="display:flex;justify-content:space-between;gap:8px"><span>60 Hz Hum</span><span id="hum60-val">-- dB</span></div>
+          <div style="display:flex;justify-content:space-between;gap:8px"><span>Drift</span><span id="drift-val">-- dB</span></div>
+          <div style="display:flex;justify-content:space-between;gap:8px"><span>Clip</span><span id="clip-val">-- %</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:10px;color:var(--text-dim)">
+          <span>Crest Factor</span><span id="crest-val">--</span>
+        </div>
+        <div id="filter-chain-label" style="margin-top:8px;font-size:10px;color:var(--text-dim);line-height:1.4">
+          Base profile filter chain active.
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-collapsible collapsed" id="card-review-markers" data-collapse-key="review-markers" data-workspaces="live,record">
+      <h3>Review &amp; Markers</h3>
+      <div class="card-body">
+        <div class="setup-panel">
+          <div class="stream-actions-row" style="margin-top:0">
+            <button id="btn-review-pause" class="btn" style="flex:1">Pause Display</button>
+            <button id="btn-review-clear-selection" class="btn" style="flex:1">Clear Selection</button>
+          </div>
+          <div id="review-status" class="setup-note" style="margin-top:6px">
+            Live display is running. Pause the trace, then drag across the waveform to inspect a region.
+          </div>
+          <div class="review-stat-grid">
+            <div class="review-stat">
+              <span class="review-stat-label">Selection</span>
+              <span id="review-selection-span" class="review-stat-value">None</span>
+            </div>
+            <div class="review-stat">
+              <span class="review-stat-label">Duration</span>
+              <span id="review-selection-duration" class="review-stat-value">-- ms</span>
+            </div>
+            <div class="review-stat">
+              <span class="review-stat-label">RMS</span>
+              <span id="review-selection-rms" class="review-stat-value">--</span>
+            </div>
+            <div class="review-stat">
+              <span class="review-stat-label">Peak-to-Peak</span>
+              <span id="review-selection-ptp" class="review-stat-value">--</span>
+            </div>
+            <div class="review-stat">
+              <span class="review-stat-label">Mean</span>
+              <span id="review-selection-mean" class="review-stat-value">--</span>
+            </div>
+            <div class="review-stat">
+              <span class="review-stat-label">Focus Channel</span>
+              <span id="review-selection-focus" class="review-stat-value">--</span>
+            </div>
+          </div>
+          <label class="setup-label" style="margin-top:8px">Marker Event</label>
+          <input id="review-marker-event" class="setup-input" type="text" placeholder="artifact / onset / rest_start">
+          <label class="setup-label">Marker Note</label>
+          <input id="review-marker-note" class="setup-input" type="text" placeholder="optional note for this region">
+          <div class="session-import-actions" style="margin-top:6px">
+            <button id="btn-review-marker" class="btn">Save Marker</button>
+            <button id="btn-review-workshop" class="btn">Send To Workshop</button>
+          </div>
+          <div class="setup-title" style="margin-top:8px">Recent Markers</div>
+          <div id="review-marker-list" class="review-marker-list">
+            <div class="setup-copy">No custom markers saved yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- output history timeline -->
+    <div class="card card-collapsible collapsed" data-collapse-key="output-timeline" data-workspaces="live,record,train">
+      <h3>Output Timeline</h3>
       <div class="card-body">
         <canvas id="timeline-canvas" width="240" height="32" style="width:100%;height:32px;border-radius:var(--radius)"></canvas>
-        <div id="timeline-label" style="font-size:9px;color:var(--text-dim);margin-top:3px">Last 60 predictions</div>
+        <div id="timeline-label" style="font-size:9px;color:var(--text-dim);margin-top:3px">Last 60 decoded outputs</div>
       </div>
     </div>
 
     <!-- proportional EMG control -->
-    <div class="card card-collapsible">
+    <div class="card card-collapsible collapsed" data-collapse-key="proportional-control" data-workspaces="control" data-requires-arm="1">
       <h3>Proportional Control</h3>
       <div class="card-body">
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;margin-bottom:6px">
@@ -986,37 +2336,52 @@
     </div>
 
     <!-- manual servo sliders -->
-    <div class="card card-collapsible collapsed">
+    <div class="card card-collapsible collapsed" data-collapse-key="manual-servos" data-workspaces="control" data-requires-arm="1">
       <h3>Manual Servos</h3>
       <div class="card-body">
         <div id="servo-sliders"></div>
       </div>
     </div>
 
-    <!-- quick gestures -->
-    <div class="card card-collapsible collapsed">
-      <h3>Quick Gestures</h3>
+    <!-- arm shortcuts -->
+    <div class="card card-collapsible collapsed" data-collapse-key="arm-shortcuts" data-workspaces="control" data-requires-arm="1">
+      <h3>Arm Shortcuts</h3>
       <div class="card-body">
         <div id="quick-gestures" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
     </div>
 
     <!-- performance + options combined -->
-    <div class="card card-collapsible collapsed">
-      <h3>Performance &amp; Options</h3>
+    <div class="card card-collapsible collapsed" id="card-timing-safety" data-collapse-key="performance-options" data-workspaces="live,record,train,control">
+      <h3>Timing &amp; Safety</h3>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim)">
           <span>WS Latency</span><span id="latency-val">-- ms</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
-          <span>Predictions/s</span><span id="pred-rate">0</span>
+          <span>Decode Latency</span><span id="decode-latency-val">-- ms</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+          <span>Window Jitter</span><span id="window-jitter-val">-- ms</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+          <span>Dropped Wins</span><span id="drop-val">0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+          <span>Signal Age</span><span id="stale-val">-- ms</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+          <span>Watchdog</span><span id="watchdog-val">--</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
+          <span>Decodes/s</span><span id="pred-rate">0</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:3px">
           <span>Windows buf</span><span id="win-count">0</span>
         </div>
         <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer">
-            <input type="checkbox" id="chk-sound"> Sound on gesture change
+            <input type="checkbox" id="chk-sound"> Sound on label change
           </label>
         </div>
       </div>
@@ -1052,6 +2417,9 @@
       <div class="palette-block" draggable="true" data-type="tone">
         <span class="block-icon" style="background:#e6db74"></span> Play Tone
       </div>
+      <div class="palette-block" draggable="true" data-type="saved_filter">
+        <span class="block-icon" style="background:#7ee787"></span> Use Saved Filter
+      </div>
       <div class="palette-block" draggable="true" data-type="log_msg">
         <span class="block-icon" style="background:#6272a4"></span> Log Message
       </div>
@@ -1065,13 +2433,13 @@
         <span class="block-icon" style="background:#ff8c00"></span> Loop Forever
       </div>
       <div class="palette-block" draggable="true" data-type="if_rms">
-        <span class="block-icon" style="background:#79c0ff"></span> If RMS &gt;
+        <span class="block-icon" style="background:#79c0ff"></span> If Metric &gt;
       </div>
       <div class="palette-block" draggable="true" data-type="if_gesture">
-        <span class="block-icon" style="background:#50e3c2"></span> If Gesture
+        <span class="block-icon" style="background:#50e3c2"></span> If Label
       </div>
       <div class="palette-block" draggable="true" data-type="wait_gesture">
-        <span class="block-icon" style="background:#50fa7b"></span> Wait Gesture
+        <span class="block-icon" style="background:#50fa7b"></span> Wait Label
       </div>
       <div class="palette-block" draggable="true" data-type="sequence">
         <span class="block-icon" style="background:#8b949e"></span> Sequence
@@ -1080,7 +2448,7 @@
     <div class="card">
       <h3>Presets</h3>
       <div class="palette-block" draggable="true" data-type="gesture">
-        <span class="block-icon" style="background:#f85149"></span> Run Gesture
+        <span class="block-icon" style="background:#f85149"></span> Run Arm Gesture
       </div>
       <div class="palette-block" draggable="true" data-type="set_3d">
         <span class="block-icon" style="background:#ff79c6"></span> 3D Arm Pose
@@ -1097,8 +2465,10 @@
       <button class="btn" onclick="newProgram()">New</button>
       <button class="btn" onclick="renameProgram()">Rename</button>
       <button class="btn danger" onclick="deleteProgram()">Del</button>
+      <button class="btn" id="btn-block-example" style="width:auto">Load Signal Example</button>
+      <button class="btn" id="btn-blocks-tour" style="width:auto">Blocks Tour</button>
       <div class="spacer"></div>
-      <button class="btn" onclick="exportArduinoCode()" style="background:#e6db74;color:#000">Export .ino</button>
+      <button class="btn" id="btn-block-export" onclick="exportArduinoCode()" style="background:#e6db74;color:#000">Export .ino</button>
       <button class="btn success" id="btn-run-prog" onclick="runProgram()">Run</button>
       <button class="btn danger" id="btn-stop-prog" onclick="stopProgram()">Stop</button>
     </div>
@@ -1114,10 +2484,10 @@
 
   <!-- Right: Gesture Mapping + Config -->
   <div class="panel">
-    <div class="card">
-      <h3>Gesture &rarr; Program</h3>
+    <div class="card" id="card-block-mapping">
+      <h3>Decoded Label &rarr; Program</h3>
       <p style="font-size:9px;color:var(--text-dim);margin-bottom:6px">
-        Map EMG gestures to run your custom programs
+        Map decoded labels to run your custom programs
       </p>
       <div id="gesture-mapping-list"></div>
     </div>
@@ -1126,7 +2496,7 @@
       <div id="exec-log">Ready.</div>
       <button class="btn" style="margin-top:4px;font-size:10px" onclick="clearExecLog()">Clear Log</button>
     </div>
-    <div class="card">
+    <div class="card" id="card-block-help">
       <h3>Help</h3>
       <div id="block-info" style="font-size:10px;color:var(--text-dim);line-height:1.5">
         <b>Drag</b> blocks from palette onto canvas.<br>
@@ -1135,7 +2505,399 @@
         <b>Zoom</b>: scroll wheel.<br>
         <b>Delete wire</b>: click wire, press Del.<br>
         <b>Double-click</b> palette block to quick-add.<br>
-        <b>Export .ino</b> generates Arduino code.
+        <b>Load Signal Example</b> builds a metric-threshold starter you can export.<br>
+        <b>Use Saved Filter</b> switches the active KYMA host filter at runtime.<br>
+        <b>Export .ino</b> generates Arduino code.<br>
+        <b>Note</b>: <b>If Metric &gt;</b> is exportable; label-driven and saved-filter blocks stay live/server-side.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Lab Tab -->
+<div id="filter-lab">
+  <div class="panel">
+    <div class="card" id="card-filter-design">
+      <h3>Filter Design</h3>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label class="setup-label">Name</label>
+        <input id="filter-name" class="setup-input" placeholder="e.g. EMG Clean Bandpass">
+
+        <label class="setup-label">Method</label>
+        <select id="filter-method" class="setup-input">
+          <option value="butter">Butterworth</option>
+          <option value="cheby1">Chebyshev I</option>
+          <option value="cheby2">Chebyshev II</option>
+          <option value="ellip">Elliptic</option>
+        </select>
+
+        <label class="setup-label">Response</label>
+        <select id="filter-response-type" class="setup-input">
+          <option value="lowpass">Lowpass</option>
+          <option value="highpass">Highpass</option>
+          <option value="bandpass" selected>Bandpass</option>
+          <option value="bandstop">Bandstop</option>
+        </select>
+
+        <div class="setup-inline">
+          <div style="flex:1">
+            <label class="setup-label">Order</label>
+            <input id="filter-order" class="setup-input" type="number" min="1" max="10" value="2">
+          </div>
+          <div style="flex:1">
+            <label class="setup-label">Apply Mode</label>
+            <select id="filter-apply-mode" class="setup-input">
+              <option value="append">Append To Profile</option>
+              <option value="replace_defaults">Replace Profile Filters</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="filter-single-cutoff-wrap">
+          <label class="setup-label">Cutoff (Hz)</label>
+          <input id="filter-cutoff-hz" class="setup-input" type="number" min="0.01" step="0.01" value="40">
+        </div>
+
+        <div id="filter-band-cutoff-wrap" class="setup-inline" style="display:none">
+          <div style="flex:1">
+            <label class="setup-label">Low Edge (Hz)</label>
+            <input id="filter-low-hz" class="setup-input" type="number" min="0.01" step="0.01" value="20">
+          </div>
+          <div style="flex:1">
+            <label class="setup-label">High Edge (Hz)</label>
+            <input id="filter-high-hz" class="setup-input" type="number" min="0.01" step="0.01" value="120">
+          </div>
+        </div>
+
+        <div class="setup-inline">
+          <div style="flex:1">
+            <label class="setup-label">Passband Ripple (dB)</label>
+            <input id="filter-rp-db" class="setup-input" type="number" min="0.01" max="20" step="0.01" value="1">
+          </div>
+          <div style="flex:1">
+            <label class="setup-label">Stopband Atten. (dB)</label>
+            <input id="filter-rs-db" class="setup-input" type="number" min="1" max="160" step="1" value="40">
+          </div>
+        </div>
+
+        <div class="filter-note" id="filter-profile-note">
+          Designs use the active signal profile sample rate and can be saved per profile.
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn primary" id="btn-filter-preview">Preview</button>
+          <button class="btn success" id="btn-filter-save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-filter-active">
+      <h3>Active Filter</h3>
+      <div id="filter-active-summary" class="filter-note">No custom filter active for this profile.</div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn" id="btn-filter-activate">Use Selected</button>
+        <button class="btn danger" id="btn-filter-clear">Clear Active</button>
+      </div>
+    </div>
+
+    <div class="card" id="card-filter-saved">
+      <h3>Saved Filters</h3>
+      <div id="filter-saved-list" class="filter-list"></div>
+    </div>
+  </div>
+
+  <div id="filter-workspace">
+    <div id="filter-toolbar">
+      <div style="font-size:11px;color:var(--text-dim)" id="filter-toolbar-title">Filter response preview</div>
+      <div class="spacer"></div>
+      <button class="btn" id="btn-filter-tour" style="width:auto">Filter Tour</button>
+      <button class="btn" id="btn-filter-export" style="width:auto;background:#e6db74;color:#000">Export Code</button>
+    </div>
+    <div id="filter-response-wrap">
+      <div class="filter-canvas-grid">
+        <div class="filter-canvas-card">
+          <h3>Bode Magnitude</h3>
+          <canvas id="filter-response-canvas" width="880" height="220"></canvas>
+        </div>
+        <div class="filter-canvas-card">
+          <h3>Pole / Zero Map</h3>
+          <canvas id="filter-polezero-canvas" width="880" height="220"></canvas>
+        </div>
+      </div>
+      <div class="filter-grid">
+        <div class="filter-stat">
+          <div class="label">Peak Gain</div>
+          <div class="value" id="filter-peak-gain">-- dB</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Minimum Gain</div>
+          <div class="value" id="filter-min-gain">-- dB</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Sections</div>
+          <div class="value" id="filter-sections">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Stability</div>
+          <div class="value" id="filter-stability">--</div>
+        </div>
+      </div>
+      <div class="card" id="card-filter-quant" style="padding:8px">
+        <h3>Fixed-Point Estimate</h3>
+        <div class="filter-grid">
+          <div class="filter-stat">
+            <div class="label">Max |Coeff|</div>
+            <div class="value" id="filter-qmax-coeff">--</div>
+          </div>
+          <div class="filter-stat">
+            <div class="label">Direct Q1.15</div>
+            <div class="value" id="filter-q15-fit">--</div>
+          </div>
+          <div class="filter-stat">
+            <div class="label">Direct Q1.31</div>
+            <div class="value" id="filter-q31-fit">--</div>
+          </div>
+          <div class="filter-stat">
+            <div class="label">Recommended s16</div>
+            <div class="value" id="filter-q16fmt">--</div>
+          </div>
+          <div class="filter-stat">
+            <div class="label">Recommended s32</div>
+            <div class="value" id="filter-q32fmt">--</div>
+          </div>
+          <div class="filter-stat">
+            <div class="label">State + Coeff Memory</div>
+            <div class="value"><span id="filter-qmem-s16">--</span> / <span id="filter-qmem-s32">--</span></div>
+          </div>
+        </div>
+        <div class="filter-note" id="filter-quant-note" style="margin-top:8px">
+          Preview or load a filter to estimate fixed-point formats and state memory.
+        </div>
+      </div>
+      <div class="card" id="card-filter-sos" style="padding:8px">
+        <h3>Second-Order Sections</h3>
+        <textarea id="filter-sos-text" class="filter-code" readonly></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card" id="card-filter-export">
+      <h3>Export</h3>
+      <label class="setup-label">Target</label>
+      <select id="filter-export-target" class="setup-input">
+        <option value="kyma_host">KYMA Host (SciPy SOS)</option>
+        <option value="iir1_cpp">iir1 C++</option>
+        <option value="arduino_filters">Arduino-Filters</option>
+        <option value="bode_csv">Bode CSV</option>
+        <option value="pole_zero_json">Pole / Zero JSON</option>
+        <option value="fixed_point_header">Fixed-Point C Header</option>
+      </select>
+      <div id="filter-export-note" class="filter-note" style="margin-top:8px">
+        Export the selected or previewed filter as reusable code.
+      </div>
+      <textarea id="filter-export-code" class="filter-code" readonly style="margin-top:8px"></textarea>
+    </div>
+
+    <div class="card" id="card-filter-help">
+      <h3>Help</h3>
+      <div class="filter-note">
+        KYMA uses BrainFlow for the built-in profile filters, but arbitrary custom filters are designed with SciPy and applied on the host stream path. Export targets are provided so the same design can be reused in companion firmware or C++ DSP paths.
+      </div>
+      <div class="filter-note" style="margin-top:8px">
+        The Cyton acquires data; it does not run these custom filters on-board in the current stack. Save filters per profile, activate one, and KYMA will apply it to live, synthetic, playback, and LSL inputs.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="signal-workshop">
+  <div class="panel">
+    <div class="card" id="card-workshop-selection">
+      <h3>Selection Source</h3>
+      <div class="filter-note" id="workshop-selection-note">
+        Pause the live display, drag a chunk on the waveform, then send it here for deeper analysis.
+      </div>
+      <div class="filter-grid" style="margin-top:8px">
+        <div class="filter-stat">
+          <div class="label">Source</div>
+          <div class="value" id="workshop-selection-source">Review freeze</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Range</div>
+          <div class="value" id="workshop-selection-range">No chunk selected</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Samples</div>
+          <div class="value" id="workshop-selection-samples">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Duration</div>
+          <div class="value" id="workshop-selection-duration">-- ms</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+        <label class="setup-label">Focus Channel</label>
+        <select id="workshop-focus-channel" class="setup-input">
+          <option value="0">CH1</option>
+        </select>
+        <label class="setup-label">Analysis View</label>
+        <select id="workshop-view" class="setup-input">
+          <option value="fft">Fourier / FFT</option>
+          <option value="psd">Power Spectral Density</option>
+          <option value="spectrogram">Spectrogram</option>
+          <option value="autocorrelation">Autocorrelation</option>
+          <option value="histogram">Amplitude Histogram</option>
+          <option value="envelope">Hilbert Envelope</option>
+          <option value="correlation">Cross-Channel Correlation</option>
+          <option value="laplace">Laplace Surface</option>
+        </select>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn primary" id="btn-workshop-analyze">Analyze Selection</button>
+          <button class="btn" id="btn-workshop-from-review">Pull From Review</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-workshop-summary">
+      <h3>Summary</h3>
+      <div class="filter-grid">
+        <div class="filter-stat">
+          <div class="label">Profile</div>
+          <div class="value" id="workshop-summary-profile">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Focus</div>
+          <div class="value" id="workshop-summary-focus">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Dominant Freq</div>
+          <div class="value" id="workshop-summary-dominant">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Spectral Centroid</div>
+          <div class="value" id="workshop-summary-centroid">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">RMS</div>
+          <div class="value" id="workshop-summary-rms">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Zero Crossings</div>
+          <div class="value" id="workshop-summary-zc">--</div>
+        </div>
+      </div>
+      <div class="workshop-note" id="workshop-summary-note" style="margin-top:8px">
+        Run an analysis to fill the chunk metrics and transform outputs.
+      </div>
+    </div>
+  </div>
+
+  <div id="workshop-workspace">
+    <div id="workshop-toolbar">
+      <div style="font-size:11px;color:var(--text-dim)">Chunk-level DSP analysis from the paused review buffer</div>
+      <div class="spacer"></div>
+      <button class="btn" id="btn-workshop-tour" style="width:auto">Workshop Tour</button>
+      <button class="btn" id="btn-workshop-refresh" style="width:auto">Re-Run</button>
+    </div>
+    <div id="workshop-response-wrap">
+      <div class="filter-canvas-card">
+        <h3 id="workshop-view-title">Fourier / FFT</h3>
+        <canvas id="workshop-main-canvas" width="1080" height="340"></canvas>
+      </div>
+      <div class="workshop-metrics">
+        <div class="workshop-stat">
+          <div class="label">Mean</div>
+          <div class="value" id="workshop-metric-mean">--</div>
+        </div>
+        <div class="workshop-stat">
+          <div class="label">Peak-to-Peak</div>
+          <div class="value" id="workshop-metric-ptp">--</div>
+        </div>
+        <div class="workshop-stat">
+          <div class="label">Derivative RMS</div>
+          <div class="value" id="workshop-metric-derivative">--</div>
+        </div>
+      </div>
+      <div class="workshop-note" id="workshop-view-note">
+        This panel renders the selected transform for the frozen chunk. The Laplace view is a numeric magnitude surface, not system identification.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card" id="card-workshop-bands">
+      <h3>Band Metrics</h3>
+      <div id="workshop-band-list" class="workshop-list">
+        <div class="setup-copy">Run an analysis to populate band metrics.</div>
+      </div>
+    </div>
+    <div class="card" id="card-workshop-details">
+      <h3>Analysis Details</h3>
+      <div id="workshop-status" class="filter-note">
+        Waiting for a review chunk.
+      </div>
+      <div class="workshop-list" id="workshop-detail-list" style="margin-top:8px">
+        <div class="setup-copy">No analysis has been run yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bench Report Tab -->
+<div id="bench-report">
+  <div class="panel">
+    <div class="card" id="card-bench-actions">
+      <h3>Bench Actions</h3>
+      <div class="filter-note">
+        Generate a short engineering report from the current diagnostics, active profile, and selected filter.
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn primary" id="btn-bench-refresh">Refresh Report</button>
+        <button class="btn" id="btn-bench-export" style="background:#e6db74;color:#000">Export Markdown</button>
+      </div>
+      <div class="filter-note" id="bench-status-note" style="margin-top:8px">
+        Report uses the current live timing/noise snapshot and active filter chain.
+      </div>
+    </div>
+
+    <div class="card" id="card-bench-snapshot">
+      <h3>Snapshot</h3>
+      <div class="filter-grid">
+        <div class="filter-stat">
+          <div class="label">Profile</div>
+          <div class="value" id="bench-profile">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Source</div>
+          <div class="value" id="bench-source">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Watchdog</div>
+          <div class="value" id="bench-watchdog">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Active Filter</div>
+          <div class="value" id="bench-active-filter">--</div>
+        </div>
+        <div class="filter-stat">
+          <div class="label">Fixed-Point</div>
+          <div class="value" id="bench-quant">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bench-workspace">
+    <div id="bench-toolbar">
+      <div style="font-size:11px;color:var(--text-dim)">Bench-style engineering summary</div>
+      <div class="spacer"></div>
+      <button class="btn" id="btn-bench-export-top" onclick="openBenchReportModal()" style="width:auto;background:#e6db74;color:#000">Export</button>
+    </div>
+    <div id="bench-report-wrap">
+      <div class="card" id="card-bench-preview" style="padding:8px;height:100%">
+        <h3>Preview</h3>
+        <textarea id="bench-report-text" readonly></textarea>
       </div>
     </div>
   </div>
@@ -1243,29 +3005,35 @@ const uint8_t MAX_ANGLES[NUM_JOINTS]  = {180,180,180,180,180,180,180,180 };  // 
       <li>Open it in Arduino IDE and upload to your board</li>
     </ol>
     <p>The generated sketch includes <code>Servo.h</code>, pin attachments, and your block sequence translated to C++. Supports: servo writes, sweeps, delays, digital/analog output, loops, conditionals, and serial logging.</p>
-    <div class="info">Blocks that depend on live EMG data (like <strong>If RMS &gt;</strong>) are translated to <code>analogRead()</code> calls. This works if you wire EMG amplifier output directly to Arduino analog pins, but won't have the same filtering as the full KYMA pipeline.</div>
+    <div class="info">Blocks that depend on live channel metrics (like <strong>If Metric &gt;</strong>) are translated to <code>analogRead()</code> calls. Label-driven blocks stay server-side and are emitted as placeholders in exported code.</div>
   </div>
 
   <div class="section">
     <h3>Connecting to KYMA</h3>
-    <p>Once the firmware is flashed, start the server with your Arduino port:</p>
-    <pre><code># Windows PowerShell:
-$env:ARDUINO_PORT="COM4"; $env:EMG_MOCK="1"; python main.py
+    <p>Once the firmware is flashed, start the server with your Arduino port. Then choose the signal type in the dashboard and enable <strong>Use synthetic source</strong> only if you want simulated data.</p>
+    <pre><code># Windows PowerShell (hardware stream):
+$env:ARDUINO_PORT="COM4"; python main.py
 
-# Linux/macOS:
-ARDUINO_PORT=/dev/ttyUSB1 EMG_MOCK=1 python main.py</code></pre>
+# Windows PowerShell (synthetic stream):
+$env:ARDUINO_PORT="COM4"; $env:BOARD_ID="-1"; python main.py
+
+# Linux/macOS (hardware stream):
+ARDUINO_PORT=/dev/ttyUSB1 python main.py
+
+# Linux/macOS (synthetic stream):
+ARDUINO_PORT=/dev/ttyUSB1 BOARD_ID=-1 python main.py</code></pre>
     <p>The server auto-detects the Arduino on startup (looks for the <code>[0xBB, 0xFF]</code> ready signal). Check the dashboard status bar to confirm the connection.</p>
   </div>
 </div>
 
 <!-- Code Export Modal -->
 <div id="code-modal">
-  <div id="code-modal-inner">
-    <div id="code-modal-header">
-      <span>Generated Arduino Code</span>
-      <div class="spacer"></div>
-      <button class="btn" onclick="copyExportedCode()" style="width:auto;margin-right:6px">Copy</button>
-      <button class="btn success" onclick="downloadExportedCode()" style="width:auto;margin-right:6px">Download .ino</button>
+    <div id="code-modal-inner">
+      <div id="code-modal-header">
+        <span id="code-modal-title">Generated Output</span>
+        <div class="spacer"></div>
+        <button class="btn" onclick="copyExportedCode()" style="width:auto;margin-right:6px">Copy</button>
+        <button class="btn success" onclick="downloadExportedCode()" style="width:auto;margin-right:6px">Download</button>
       <button class="btn danger" onclick="closeCodeModal()" style="width:auto">&times;</button>
     </div>
     <textarea id="code-output" readonly></textarea>
@@ -1421,6 +3189,7 @@ this.update();
 THREE.OrbitControls=OrbitControls;
 })();
 </script>
-<script src="/static/app.js?v=14"></script>
+<script src="/static/assets/driverjs/driver.js.iife.js"></script>
+<script src="/static/app.js?v=59"></script>
 </body>
 </html>

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" fill="none">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#484f58"/>
+    </marker>
+  </defs>
+
+  <rect x="320" y="85" width="320" height="285" rx="16" fill="#0d1117" stroke="#1f6feb" stroke-width="2.2"/>
+  <text x="480" y="120" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">INTEGRATION SERVER</text>
+  <text x="480" y="139" text-anchor="middle" fill="#8b949e" font-size="11">Python / FastAPI / WebSocket coordinator</text>
+  <text x="480" y="155" text-anchor="middle" fill="#8b949e" font-size="10">250 Hz in / 200 ms windows / 50 ms step / 115200 baud out</text>
+
+  <rect x="355" y="160" width="250" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.1"/>
+  <text x="480" y="182" text-anchor="middle" fill="#e6edf3" font-size="11.5" font-weight="600">Acquisition + buffer manager</text>
+  <text x="480" y="196" text-anchor="middle" fill="#8b949e" font-size="10.5">8 channels at 250 Hz, 10 s ring buffer</text>
+
+  <rect x="355" y="214" width="250" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.1"/>
+  <text x="480" y="236" text-anchor="middle" fill="#e6edf3" font-size="11.5" font-weight="600">Decision logic + safety gate</text>
+  <text x="480" y="250" text-anchor="middle" fill="#8b949e" font-size="10.5">&gt;=2 active channels, conf &gt;= 0.65, ESTOP lockout</text>
+
+  <rect x="355" y="268" width="250" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.1"/>
+  <text x="480" y="290" text-anchor="middle" fill="#e6edf3" font-size="11.5" font-weight="600">Realtime interfaces</text>
+  <text x="480" y="304" text-anchor="middle" fill="#8b949e" font-size="10.5">WebSocket telemetry (~20 Hz) + REST API</text>
+
+  <rect x="355" y="322" width="250" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.1"/>
+  <text x="480" y="344" text-anchor="middle" fill="#e6edf3" font-size="11.5" font-weight="600">Windowing, calibration, recording</text>
+  <text x="480" y="358" text-anchor="middle" fill="#8b949e" font-size="10.5">200/50 ms windows, baseline + SNR, CSV/JSON logs</text>
+
+  <rect x="45" y="112" width="205" height="94" rx="12" fill="#0d1117" stroke="#00bfff" stroke-width="1.8"/>
+  <text x="147.5" y="148" text-anchor="middle" fill="#00bfff" font-size="12" font-weight="700">CYTON / BRAINFLOW</text>
+  <text x="147.5" y="170" text-anchor="middle" fill="#e6edf3" font-size="11.5">8 ch, ADS1299, 24-bit, 250 Hz</text>
+  <text x="147.5" y="188" text-anchor="middle" fill="#8b949e" font-size="10.5">20-120 Hz BP + 48-52 / 58-62 Hz notch</text>
+
+  <rect x="45" y="270" width="205" height="78" rx="12" fill="#0d1117" stroke="#e94560" stroke-width="1.8"/>
+  <text x="147.5" y="298" text-anchor="middle" fill="#e94560" font-size="12" font-weight="700">DASHBOARD CONTROLS</text>
+  <text x="147.5" y="320" text-anchor="middle" fill="#e6edf3" font-size="12">Start / stop / calibrate</text>
+  <text x="147.5" y="338" text-anchor="middle" fill="#e6edf3" font-size="12">Hold-to-record / train / estop</text>
+
+  <rect x="710" y="112" width="205" height="94" rx="12" fill="#0d1117" stroke="#f0883e" stroke-width="1.8"/>
+  <text x="812.5" y="144" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="700">TRANSLATION / MCU LINK</text>
+  <text x="812.5" y="166" text-anchor="middle" fill="#e6edf3" font-size="11.5">115200 baud serial bridge</text>
+  <text x="812.5" y="184" text-anchor="middle" fill="#8b949e" font-size="10.5">MOVE 0x01, ESTOP 0x02, HOME 0x03</text>
+
+  <rect x="710" y="262" width="205" height="94" rx="12" fill="#0d1117" stroke="#3fb950" stroke-width="1.8"/>
+  <text x="812.5" y="298" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">LIVE FEEDBACK</text>
+  <text x="812.5" y="320" text-anchor="middle" fill="#e6edf3" font-size="11.5">~12 new samples / update, RMS, predictions</text>
+  <text x="812.5" y="338" text-anchor="middle" fill="#8b949e" font-size="10.5">State changes + calibration events</text>
+
+  <rect x="355" y="418" width="250" height="70" rx="12" fill="#0d1117" stroke="#c297ff" stroke-width="1.8"/>
+  <text x="480" y="448" text-anchor="middle" fill="#c297ff" font-size="12" font-weight="700">SAVED OUTPUTS</text>
+  <text x="480" y="468" text-anchor="middle" fill="#e6edf3" font-size="11.5">`emg_raw.csv` + `events.json` + `meta.json`</text>
+  <text x="480" y="484" text-anchor="middle" fill="#8b949e" font-size="10.5">Traceable session, baseline, and command history</text>
+
+  <line x1="250" y1="159" x2="320" y2="159" stroke="#484f58" stroke-width="1.7" marker-end="url(#arrow)"/>
+  <text x="286" y="147" text-anchor="middle" fill="#8b949e" font-size="10">8 ch / 250 Hz</text>
+
+  <line x1="250" y1="309" x2="320" y2="309" stroke="#484f58" stroke-width="1.7" marker-end="url(#arrow)"/>
+  <text x="286" y="297" text-anchor="middle" fill="#8b949e" font-size="10">operator requests</text>
+
+  <line x1="640" y1="159" x2="710" y2="159" stroke="#484f58" stroke-width="1.7" marker-end="url(#arrow)"/>
+  <text x="675" y="147" text-anchor="middle" fill="#8b949e" font-size="10">115200 baud</text>
+
+  <line x1="640" y1="309" x2="710" y2="309" stroke="#484f58" stroke-width="1.7" marker-end="url(#arrow)"/>
+  <text x="675" y="297" text-anchor="middle" fill="#8b949e" font-size="10">~20 Hz telemetry</text>
+
+  <line x1="480" y1="370" x2="480" y2="418" stroke="#484f58" stroke-width="1.7" marker-end="url(#arrow)"/>
+  <text x="525" y="399" text-anchor="middle" fill="#8b949e" font-size="10">recorded data</text>
+
+  <text x="480" y="40" text-anchor="middle" fill="#8b949e" font-size="14">
+    The brain closes the control loop between EMG acquisition and deterministic MCU packets.
+  </text>
+</svg>

@@ -5,7 +5,7 @@
 <h1 align="center">KYMA</h1>
 
 <p align="center">
-  <em>Open-source biosignal control platform — from wave to action.</em>
+  <em>Open-source biosignal control platform - from wave to action.</em>
 </p>
 
 <p align="center">
@@ -25,7 +25,15 @@
 
 ## Overview
 
-**KYMA** is a real-time biosignal acquisition, processing, and control platform built on top of [OpenBCI](https://openbci.com/) hardware. It captures EMG/EEG/ECG signals, runs them through configurable pipelines, and maps the output to physical actuators or software actions — all from a single browser dashboard.
+**KYMA** is a real-time biosignal acquisition, analysis, and control platform built around OpenBCI-class hardware and a browser-first research UI. It supports multiple biosignal profiles, live monitoring, recording, offline experiments, reusable digital filter design, and hardware/software control outputs from one dashboard.
+
+The current stack includes:
+- profile-aware biosignal modes: `EMG`, `EEG`, `ECG`, `EOG`, `PPG`, `EDA`, `Respiration`, `Temperature`
+- `Live`, `Record`, `Train`, and `Control` workspaces
+- `Filter Lab` for digital filter design and export
+- `Signal Workshop` for selected-chunk DSP analysis
+- `Blocks` for visual logic and Arduino code generation
+- LSL, XDF, BIDS-style export, playback, OSC, and Arduino interop
 
 <p align="center">
   <picture>
@@ -38,43 +46,51 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Real-time EMG visualization** | 8-channel live waveform display with per-channel RMS, signal quality indicators, and fatigue monitoring |
-| **Three classifier backends** | LDA (fast, feature-based), TCN (temporal convolutional network), Mamba (state space model) — all train in-browser |
-| **Proportional control** | Direct channel-to-joint mapping with configurable gain, dead zone, and adaptive baseline — no training required |
-| **3D arm simulation** | Interactive Three.js arm with multiple models (humanoid hand, industrial 6-axis) and 12-DOF joint control |
-| **Visual block programming** | Drag-and-drop node editor for building custom control pipelines — map any signal to any action |
-| **Session recording** | Raw EMG + event logging to CSV/JSON for offline analysis and reproducibility |
-| **Arduino serial bridge** | Binary protocol for real-time servo control with ESTOP safety |
-| **Fully configurable** | Environment variables, runtime config, and persistent UI settings |
+| **Profile-aware biosignal stack** | Per-profile labels, filters, metrics, and training support for EMG, EEG, ECG, EOG, PPG, EDA, respiration, and temperature |
+| **Live diagnostics** | Waveforms, channel toggles, decoded output, signal health, FFT/PSD-style diagnostics, hum metrics, latency, and watchdog state |
+| **Review freeze + markers** | Freeze the visible review surfaces, drag a chunk like a lightweight scope capture, inspect local stats, and save custom markers |
+| **Signal Workshop** | Analyze frozen chunks with FFT, PSD, spectrogram, autocorrelation, histogram, Hilbert envelope, correlation, and Laplace views |
+| **Filter Lab** | Design, preview, save, activate, and export digital filters with Bode view, pole/zero map, and fixed-point estimates |
+| **Training and experiments** | Live training plus offline datasets, temporal holdout, leave-one-session-out, and leave-one-subject-out evaluation |
+| **Research interoperability** | LSL input/output, XDF import, BIDS-style export, session playback, subject registry, and EEG experiment presets |
+| **Control outputs** | Arduino serial bridge, OSC output, proportional control, block programming, `.ino` export, and E-STOP safety |
 
 ---
 
 ## Architecture
 
-```
+```text
 KYMA/
-├── server/                     # Python backend (FastAPI + WebSocket)
-│   ├── main.py                 # HTTP/WS server, lifespan management, API routes
-│   ├── brainflow_stream.py     # BrainFlow Cyton streaming + ring buffer + filters
-│   ├── emg_pipeline.py         # Feature extraction, classifier orchestration, voting
-│   ├── classifiers.py          # LDA, TCN, Mamba implementations
-│   ├── calibration.py          # Multi-stage hardware calibration wizard
-│   ├── arduino_bridge.py       # Binary serial protocol to MCU servo controller
-│   ├── session_recorder.py     # Raw data + event persistence
-│   ├── config.py               # Central configuration (env vars + defaults)
-│   └── models.py               # Pydantic request/response schemas
-│
-├── dashboard/                  # Browser frontend (vanilla JS, no build step)
-│   ├── index.html              # Single-page app layout + styles
-│   └── app.js                  # EMG visualization, 3D arm, block editor, WS client
-│
-├── firmware/                   # Microcontroller code
-│   └── arm_controller/
-│       └── arm_controller.ino  # Arduino servo driver (binary protocol)
-│
-├── run.py                      # CLI launcher
-├── requirements.txt            # Python dependencies
-└── LICENSE                     # AGPL-3.0
+|-- server/                     # Python backend (FastAPI + WebSocket)
+|   |-- main.py                 # API routes, WS server, runtime orchestration
+|   |-- brainflow_stream.py     # BrainFlow/Cyton, synthetic, playback, LSL input
+|   |-- biosignal_pipeline.py   # Profile-aware decoder routing
+|   |-- *_pipeline.py           # EMG/EEG/ECG/EOG/PPG/EDA/resp/temp pipelines
+|   |-- live_diagnostics.py     # Spectrum, timing, noise, watchdog metrics
+|   |-- signal_workshop.py      # Selected-chunk DSP analysis service
+|   |-- filter_lab.py           # Digital filter design, storage, export
+|   |-- session_recorder.py     # Raw chunk + event persistence
+|   |-- research_manager.py     # Datasets and offline experiments
+|   |-- lsl_bridge.py           # LSL output
+|   |-- lsl_input.py            # LSL inlet discovery and streaming
+|   |-- xdf_import.py           # XDF inspect/import
+|   |-- session_export.py       # BIDS-style export
+|   |-- osc_bridge.py           # OSC output
+|   `-- models.py               # Pydantic request/response schemas
+|
+|-- dashboard/                  # Browser frontend (vanilla JS, no build step)
+|   |-- index.html              # App shell, layout, styles
+|   `-- app.js                  # Workspaces, charts, tours, WS client, blocks
+|
+|-- firmware/
+|   `-- arm_controller/
+|       `-- arm_controller.ino  # Arduino servo driver (binary protocol)
+|
+|-- docs/                       # Diagrams, notes, slide assets, research stack docs
+|-- requirements.txt            # Runtime dependencies
+|-- requirements-research.txt   # Optional research/interoperability stack
+|-- requirements-dev.txt        # Test/lint/dev tooling
+`-- LICENSE
 ```
 
 ---
@@ -84,8 +100,8 @@ KYMA/
 ### Prerequisites
 
 - **Python 3.10+**
-- **OpenBCI Cyton** board + USB dongle (or use mock mode)
-- **Arduino** (optional — only for physical servo control)
+- **OpenBCI Cyton** board + USB dongle if using live hardware
+- **Arduino** only if using physical servo control
 
 ### Quick Launch (Windows)
 
@@ -94,11 +110,17 @@ git clone https://github.com/YOUR_USERNAME/kyma.git
 cd kyma
 ```
 
-Double-click **`KYMA.bat`** — it handles everything automatically:
-- Creates a virtual environment
-- Installs all dependencies (first run only)
-- Starts the server
-- Opens KYMA in a native desktop window
+Then run:
+
+```powershell
+.\KYMA.bat
+```
+
+Optional custom port:
+
+```powershell
+.\KYMA.bat --browser --port 8007
+```
 
 ### Manual Setup
 
@@ -106,27 +128,48 @@ Double-click **`KYMA.bat`** — it handles everything automatically:
 pip install -r requirements.txt
 ```
 
-### Run (mock mode — no hardware)
+### Optional Research Stack
+
+Install this only if you want the broader BCI/research toolchain:
+
+```bash
+pip install -r requirements-research.txt
+pip install -r requirements-dev.txt
+```
+
+This adds packages such as `mne-lsl`, `pyxdf`, `mne-bids`, `pybids`, `pyEDFlib`, `mne-features`, and `mne-icalabel`.
+
+See [docs/kyma_research_stack.md](docs/kyma_research_stack.md) for the research roadmap and tooling rationale.
+
+### Run (synthetic mode, no hardware)
 
 ```bash
 cd server
-# Windows PowerShell:
-$env:EMG_MOCK="1"; python main.py
 
-# Linux/macOS:
-EMG_MOCK=1 python main.py
+# Windows PowerShell
+$env:BOARD_ID="-1"; python main.py
+
+# Linux/macOS
+BOARD_ID=-1 python main.py
 ```
 
-Open **http://localhost:8000** in your browser.
+Open **http://localhost:8000**.
+
+In the dashboard:
+1. choose **Signal Type**
+2. choose **Data Source**
+3. pick **Synthetic**
+4. click **Start Stream**
 
 ### Run (real Cyton board)
 
 ```bash
 cd server
-# Windows — adjust COM port to match your dongle:
+
+# Windows
 $env:CYTON_PORT="COM8"; python main.py
 
-# Linux:
+# Linux
 CYTON_PORT=/dev/ttyUSB0 python main.py
 ```
 
@@ -141,11 +184,11 @@ $env:CYTON_PORT="COM8"; $env:ARDUINO_PORT="COM4"; python main.py
 
 ## Configuration
 
-All settings live in `server/config.py` and can be overridden via environment variables:
+Most runtime defaults live in `server/config.py` and can be overridden with environment variables.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `EMG_MOCK` | `0` | `1` = simulated board + mock Arduino |
+| `SIGNAL_PROFILE` | `emg` | Active biosignal profile at startup |
 | `BOARD_ID` | `0` | BrainFlow board ID (`0` = Cyton, `-1` = synthetic) |
 | `CYTON_PORT` | `COM8` | Serial port for OpenBCI dongle |
 | `ARDUINO_PORT` | `COM4` | Serial port for Arduino |
@@ -153,53 +196,142 @@ All settings live in `server/config.py` and can be overridden via environment va
 
 ---
 
-## Usage Guide
+## Dashboard Layout
 
-### Proportional Control (no training needed)
+### Workspaces
 
-The fastest way to get started — map EMG channels directly to joint angles:
+- **Live**: monitoring, diagnostics, review freeze, markers, EEG/arm views
+- **Record**: session metadata, protocol templates, XDF import, EEG experiment presets, marker helper
+- **Train**: model fitting, datasets, offline experiments
+- **Control**: LSL output, OSC output, arm/proportional control
 
-1. Start the stream
-2. In the **Proportional Control** panel, check **Enable**
-3. Add mappings: `CH1 → Elbow (+ flex)`, `CH2 → Elbow (− extend)`, etc.
-4. Adjust **Gain** (sensitivity) and **Dead zone** (noise threshold)
-5. Flex your muscles — the 3D arm responds in real time
+### Top-Level Tabs
 
-### Gesture Classification (requires training)
+- **Dashboard**: the main workspace UI
+- **Blocks**: visual logic builder and `.ino` export
+- **Filter Lab**: digital filter design, activation, and export
+- **Signal Workshop**: selected-chunk DSP analysis
+- **Bench Report**: engineering snapshot export
+- **Arduino Guide**: wiring, protocol, and firmware notes
 
-For discrete gesture recognition with higher accuracy:
+### Built-In Tours
 
-1. Start the stream
-2. Select a classifier (LDA recommended for getting started)
-3. For each gesture: click **Hold**, perform the gesture for 3-5 seconds, release
-4. Click **Train Model**
-5. The arm now responds to recognized gestures automatically
+KYMA now ships with guided tours for:
+- Quick Start
+- Blocks
+- Filter Lab
+- Signal Workshop
 
-### Electrode Placement
-
-KYMA gives you full control over channel-to-muscle mapping — place electrodes on whichever muscles you want to control and assign them in the dashboard. Here's a common upper-limb setup as a starting point:
-
-| Channels | Example Muscles | Example Controls |
-|----------|----------------|-----------------|
-| CH1 + CH2 | Biceps / Triceps | Elbow flex/extend |
-| CH3 + CH4 | Wrist flexors / extensors | Wrist pitch |
-| CH5 + CH6 | Forearm pronators / supinators | Forearm rotation |
-| CH7 + CH8 | Finger flexors / extensors | Grip |
-
-> **Tip:** You can map any channel to any joint or action through the Proportional Control panel or the visual block editor. Experiment with different placements to find what works best for your use case.
-
-*Ground/reference: earlobe clip on BIAS + SRB2*
+Use the **Tour** button in the top bar, or the tab-specific tour buttons.
 
 ---
 
-## Signal Processing Pipeline
+## Usage Guide
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/pipeline.svg"/>
-    <img src="docs/pipeline.svg" alt="Signal Processing Pipeline" width="600"/>
-  </picture>
-</p>
+### Fastest Path: synthetic demo
+
+1. Start KYMA
+2. Choose a **Signal Type**
+3. Choose **Synthetic**
+4. Click **Start Stream**
+5. Open the relevant visualization or control panels
+
+### Review freeze and chunk analysis
+
+1. Start a stream
+2. In **Review & Markers**, click **Freeze Review**
+3. Drag across the waveform to select a chunk
+4. Save a marker, or click **Send To Workshop**
+5. In **Signal Workshop**, choose the transform view and analyze the chunk
+
+This works like a lightweight oscilloscope review pass on the visible buffer. It freezes the review surfaces while the stream continues underneath.
+
+### Filter Lab
+
+1. Open **Filter Lab**
+2. Choose method, response type, order, and cutoff frequencies
+3. Click **Preview**
+4. Inspect:
+   - Bode magnitude
+   - pole/zero map
+   - fixed-point estimate
+5. Save and activate the filter for the current profile
+6. Export to host code, C++, Arduino-targeted helpers, or engineering data files
+
+Important: KYMA designs and applies custom filters on the host path. It does **not** program arbitrary custom filters onto the Cyton board itself.
+
+### Blocks and code generation
+
+1. Open **Blocks**
+2. Load the example program or create your own
+3. Use metric-threshold blocks for exportable Arduino logic
+4. Use label-driven blocks when KYMA stays in the loop
+5. Export a `.ino` sketch from the current graph
+
+### Proportional control
+
+Best used with EMG:
+
+1. Start the stream
+2. Open **Control**
+3. Enable **Proportional Control**
+4. Map channels to joints
+5. Adjust gain and dead zone
+6. Drive the simulated or physical arm directly from signal magnitude
+
+### Recording and offline experiments
+
+1. Open **Record**
+2. Fill in session metadata
+3. Use a protocol template if you want a structured run
+4. Record sessions
+5. Open **Train**
+6. Create a dataset from saved sessions
+7. Run offline experiments with temporal/session/subject holdout
+
+---
+
+## Signal Workshop
+
+The `Signal Workshop` is the selected-chunk DSP analysis space. It currently supports:
+
+- `Fourier / FFT`
+- `Power Spectral Density`
+- `Spectrogram`
+- `Autocorrelation`
+- `Amplitude Histogram`
+- `Hilbert Envelope`
+- `Cross-Channel Correlation`
+- `Laplace Surface`
+
+It also reports chunk-level summary metrics such as:
+- mean
+- RMS
+- standard deviation
+- min / max
+- peak-to-peak
+- derivative RMS
+- zero crossings
+- dominant frequency
+- spectral centroid
+
+The Laplace view is a **numeric magnitude surface** over frequency and sigma for the selected chunk. It is not transfer-function identification.
+
+---
+
+## Research Interoperability
+
+KYMA now includes:
+
+- **LSL output** for live samples and markers
+- **LSL input** for subscribing to external streams
+- **XDF import** into replayable KYMA sessions
+- **session playback**
+- **BIDS-style export**
+- **subject registry**
+- **EEG experiment presets** for oddball, SSVEP, and N170 recording workflows
+
+The current research layer is strongest for acquisition, review, metadata, export, and offline experiments. It is not trying to replace dedicated offline packages like MNE or Brainstorm.
 
 ---
 
@@ -207,58 +339,68 @@ KYMA gives you full control over channel-to-muscle mapping — place electrodes 
 
 | Backend | Input | Training Data | Speed | Best For |
 |---------|-------|--------------|-------|----------|
-| **LDA** | Hand-crafted features (MAV, RMS, WL, ZC, SSC) | 30+ windows/gesture | ~1 s train | Quick prototyping, few gestures |
-| **TCN** | Raw EMG windows | 60+ windows/gesture | ~30 s train | Higher accuracy, more gestures |
-| **Mamba** | Raw EMG windows | 60+ windows/gesture | ~60 s train | Temporal patterns, CPU-safe SSM |
+| **LDA** | Hand-crafted features | 30+ windows/label | Fast | Quick prototyping and baseline models |
+| **TCN** | Raw windows | 60+ windows/label | Medium | Higher-capacity temporal modeling |
+| **Mamba** | Raw windows | 60+ windows/label | Medium/slow | State-space temporal modeling |
 
-All classifiers include 3× data augmentation (noise injection, amplitude scaling, channel dropout) for the deep learning backends.
+Not every profile uses every backend equally. EMG is still the strongest end-to-end arm-control path, while the other profiles now share the broader biosignal platform and research workflow.
 
 ---
 
 ## Arduino Firmware
 
-The firmware in `firmware/arm_controller/` implements a minimal binary protocol over serial at 115200 baud:
+The firmware in `firmware/arm_controller/` uses a compact binary protocol over serial at `115200` baud:
 
 | Command | Bytes | Response | Description |
 |---------|-------|----------|-------------|
-| MOVE | `[0x01, joint, angle]` | `[0xAA, joint]` | Set servo angle (0-180) |
-| ESTOP | `[0x02]` | `[0xAA, 0x00]` | Emergency stop all servos |
-| HOME | `[0x03]` | `[0xAA, 0x00]` | Return to neutral (90) |
-| PING | `[0x04]` | `[0xBB, 0x00]` | Heartbeat check |
+| `MOVE` | `[0x01, joint, angle]` | `[0xAA, joint]` | Set servo angle (`0-180`) |
+| `ESTOP` | `[0x02]` | `[0xAA, 0x00]` | Emergency stop all servos |
+| `HOME` | `[0x03]` | `[0xAA, 0x00]` | Return to neutral |
+| `PING` | `[0x04]` | `[0xBB, 0x00]` | Heartbeat check |
 
-Flash via Arduino IDE. Servos connect to pins 2-9. Full wiring diagrams, protocol details, and .ino export instructions are available in the **Arduino Guide** tab inside the dashboard.
+Full wiring, protocol notes, and `.ino` export instructions are available in the **Arduino Guide** tab inside the dashboard.
 
 ---
 
 ## API Reference
 
-The server exposes a REST API (see `/docs` for interactive Swagger UI when running):
+The server exposes a REST API and WebSocket interface. See `/docs` while the server is running for the live schema.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/status` | GET | System state, streaming status, training info |
-| `/api/stream/start` | POST | Start BrainFlow acquisition |
-| `/api/stream/stop` | POST | Stop acquisition |
-| `/api/calibrate` | POST | Run calibration wizard |
-| `/api/train/record` | POST | Start/stop recording gesture windows |
-| `/api/train/train` | POST | Train classifier |
-| `/api/move` | POST | Move single servo joint |
-| `/api/gesture` | POST | Execute named gesture |
-| `/api/estop` | POST | Emergency stop |
+| `/api/status` | GET | System state, active profile, diagnostics, safety, filter lab, workshop status |
+| `/api/config` | GET | Runtime config, available profiles, filters, calibration, experiments |
+| `/api/stream/start` | POST | Start hardware, synthetic, playback, or LSL input streaming |
+| `/api/stream/stop` | POST | Stop streaming |
+| `/api/calibrate` | POST | Run calibration |
+| `/api/session/start` | POST | Start a recording session |
+| `/api/session/stop` | POST | Stop a recording session |
 | `/api/sessions` | GET | List recorded sessions |
-| `/ws` | WebSocket | Real-time EMG, predictions, calibration events |
+| `/api/review/marker` | POST | Save a custom review marker from the frozen display |
+| `/api/filterlab/status` | GET | Filter Lab capabilities and saved filters |
+| `/api/filterlab/design` | POST | Preview a digital filter design |
+| `/api/workshop/status` | GET | Signal Workshop availability and supported views |
+| `/api/workshop/analyze` | POST | Analyze a selected chunk in the Signal Workshop |
+| `/api/lsl/start` | POST | Start LSL output |
+| `/api/lsl/stop` | POST | Stop LSL output |
+| `/api/osc/start` | POST | Start OSC output |
+| `/api/osc/stop` | POST | Stop OSC output |
+| `/api/move` | POST | Move one servo joint |
+| `/api/gesture/*` | POST | Trigger named gesture actions |
+| `/api/estop` | POST | Emergency stop |
+| `/ws` | WebSocket | Live samples, predictions, diagnostics, calibration, markers, state |
 
 ---
 
 ## Contributing
 
-Contributions are welcome under the terms of the AGPL-3.0 license. All derivative works must remain open source.
+Contributions are welcome under the terms of the AGPL-3.0 license.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -am 'Add my feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push the branch
+5. Open a pull request
 
 ---
 
@@ -267,14 +409,14 @@ Contributions are welcome under the terms of the AGPL-3.0 license. All derivativ
 **KYMA** is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 This means:
-- ✅ You can use, study, and share this software freely
-- ✅ You can modify and distribute your own versions
-- ⚠️ You **must** release your modifications under the same license
-- ⚠️ If you run a modified version as a network service, you **must** provide source code to users
-- ❌ You **cannot** make closed-source derivatives
+- you can use, study, and share the software
+- you can modify and distribute your own versions
+- you must release modifications under the same license
+- if you run a modified version as a network service, you must provide source code to users
+- you cannot make closed-source derivatives
 
 ---
 
 <p align="center">
-  <em>KYMA — from wave to action</em>
+  <em>KYMA - from wave to action</em>
 </p>
