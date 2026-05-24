@@ -1,0 +1,14 @@
+{
+  "id": "tiny_biomoe",
+  "name": "TinyBioMoE",
+  "task": "foundation_encoder",
+  "format": "pytorch_checkpoint_bundle",
+  "adapter": "tiny_biomoe_bundle",
+  "weights": "../../../../sessions/ai_models/downloads/Tiny-BioMoE.pth",
+  "modalities": ["eeg", "emg", "ecg"],
+  "embedding_dim": 192,
+  "outputs": ["192-d embedding", "downstream head logits"],
+  "trusted": true,
+  "inference_ready": false,
+  "notes": "Validated checkpoint bundle. Requires a dedicated architecture wrapper and downstream task heads before runtime inference."
+}

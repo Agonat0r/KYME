@@ -217,7 +217,7 @@ class CalibrationManager:
         channel_report = self._assess_channel_quality(window)
         self.results.update(channel_report)
         self._emit(
-            f"Channels: {channel_report['good_channels']}/{config.n_channels} look usable",
+            f"Channels: {channel_report['good_channels']}/{config.n_channels} look stable",
             {
                 "quality": channel_report["channel_quality"],
                 "issues": channel_report["channel_issues"],
@@ -225,7 +225,7 @@ class CalibrationManager:
             },
         )
         if channel_report["good_channels"] < 2:
-            return self._fail("Too few usable channels. Check contact and wiring.", channel_report)
+            return self._fail("Too few stable channels. Check contact and wiring.", channel_report)
 
         self.stage = CalibStage.BASELINE
         self._emit(

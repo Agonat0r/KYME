@@ -73,6 +73,74 @@ class ProfileWindowAnalyzer:
             "profile": self.profile.key,
         }
 
+    def _attach_arousal(self, result: Dict, arousal: Dict) -> Dict:
+        score = float(np.clip(arousal.get("score", 0.0), 0.0, 100.0))
+        if score >= 70.0:
+            level = "high"
+        elif score >= 42.0:
+            level = "elevated"
+        elif score >= 18.0:
+            level = "mild"
+        else:
+            level = "baseline"
+
+        payload = {
+            "score": round(score, 1),
+            "level": arousal.get("level") or level,
+            "confidence": round(float(np.clip(arousal.get("confidence", result.get("confidence", 0.0)), 0.0, 0.99)), 3),
+            "drivers": list(arousal.get("drivers") or []),
+            "disclaimer": "Physiological arousal only; this is not deception or truth detection.",
+        }
+        result["arousal"] = payload
+        result.setdefault("metrics", {})["arousal_score"] = payload["score"]
+        return result
+
+    def _ecg_arousal(self, bpm: float, rr_variability: float, peak_count: int) -> Dict:
+        rate_score = 0.0
+        if bpm > 90.0:
+            rate_score = min(52.0, (bpm - 90.0) * 1.3)
+        elif bpm < 55.0:
+            rate_score = min(20.0, (55.0 - bpm) * 0.8)
+
+        variability_score = min(32.0, rr_variability * 145.0)
+        score = 10.0 + rate_score + variability_score
+        drivers = []
+        if bpm > 90.0:
+            drivers.append(f"Heart rate elevated at {bpm:.0f} bpm")
+        elif bpm < 55.0:
+            drivers.append(f"Heart rate below baseline at {bpm:.0f} bpm")
+        else:
+            drivers.append(f"Heart rate near baseline at {bpm:.0f} bpm")
+        if rr_variability > 0.12:
+            drivers.append(f"RR variability increased ({rr_variability:.2f})")
+        drivers.append(f"{peak_count} R-peaks detected in the analysis window")
+        return {
+            "score": score,
+            "confidence": min(0.92, 0.42 + 0.08 * min(peak_count, 6)),
+            "drivers": drivers,
+        }
+
+    def _eda_arousal(self, tonic_level: float, phasic_span: float, slope: float) -> Dict:
+        slope_score = max(0.0, slope) * 145.0
+        span_score = max(0.0, phasic_span - 0.04) * 105.0
+        tonic_score = max(0.0, tonic_level - 0.2) * 10.0
+        score = 8.0 + min(42.0, slope_score) + min(45.0, span_score) + min(10.0, tonic_score)
+        drivers = []
+        if slope > 0.08:
+            drivers.append(f"Skin conductance rising ({slope:.2f} {self.profile.units})")
+        elif slope < -0.08:
+            drivers.append(f"Skin conductance recovering ({slope:.2f} {self.profile.units})")
+        else:
+            drivers.append("Skin conductance slope near baseline")
+        if phasic_span > 0.15:
+            drivers.append(f"Phasic skin conductance span {phasic_span:.2f} {self.profile.units}")
+        drivers.append(f"Tonic skin conductance {tonic_level:.2f} {self.profile.units}")
+        return {
+            "score": score,
+            "confidence": min(0.93, 0.45 + min(abs(slope) * 1.8, 0.25) + min(phasic_span, 0.23)),
+            "drivers": drivers,
+        }
+
     def _dominant_freq(self, signal: np.ndarray, fmin: float, fmax: float) -> Tuple[float, float]:
         if signal.size < 8:
             return 0.0, 0.0
@@ -180,7 +248,8 @@ class ProfileWindowAnalyzer:
             "peak_count": float(peaks.size),
         }
         summary = f"{bpm:.0f} bpm, RR variability {variability:.2f}"
-        return self._label_result(label, confidence, metrics, summary)
+        result = self._label_result(label, confidence, metrics, summary)
+        return self._attach_arousal(result, self._ecg_arousal(bpm, variability, int(peaks.size)))
 
     def _analyze_eog(self) -> Dict:
         hist = self._get_recent(1.5)
@@ -243,7 +312,8 @@ class ProfileWindowAnalyzer:
             "slope": round(slope, 3),
         }
         summary = f"Tonic {baseline:.2f} {self.profile.units}, span {span:.2f}"
-        return self._label_result(label, confidence, metrics, summary)
+        result = self._label_result(label, confidence, metrics, summary)
+        return self._attach_arousal(result, self._eda_arousal(baseline, span, slope))
 
     def _analyze_ppg(self) -> Dict:
         hist = self._get_recent(8.0)

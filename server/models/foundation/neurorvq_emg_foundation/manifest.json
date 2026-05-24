@@ -1,0 +1,17 @@
+{
+  "id": "neurorvq_emg_foundation",
+  "name": "NeuroRVQ EMG Foundation",
+  "task": "foundation_encoder",
+  "format": "safetensors_checkpoint",
+  "adapter": "neurorvq_emg_foundation_encoder",
+  "weights": "../../../../sessions/ai_models/downloads/NeuroRVQ_EMG_foundation_model_v1.safetensors",
+  "modalities": ["emg"],
+  "channels": 8,
+  "window_samples": 256,
+  "sample_rate_hz": 250,
+  "embedding_dim": 200,
+  "outputs": ["200-d token features", "pooled embedding"],
+  "trusted": true,
+  "inference_ready": false,
+  "notes": "Validated EMG foundation checkpoint with multi-branch patch embed and transformer blocks. Requires a KYMA forward wrapper before runtime inference."
+}

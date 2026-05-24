@@ -13,6 +13,10 @@ h5py
 # Biosignal acquisition, synchronization, and standards
 pylsl
 mne-lsl
+psutil
+pyqtgraph
+qtpy
+tomli; python_version < "3.11"
 pyxdf
 mne
 nilearn
@@ -24,6 +28,7 @@ neurokit2
 # Feature extraction and artifact handling
 mne-features
 mne-icalabel
+wrapt
 
 # Classical and deep-learning BCI research
 pyriemann

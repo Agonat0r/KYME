@@ -1,0 +1,15 @@
+{
+  "id": "st_eegformer_small",
+  "name": "ST-EEGFormer Small",
+  "task": "foundation_encoder",
+  "format": "safetensors_checkpoint",
+  "adapter": "st_eegformer_small_encoder",
+  "weights": "../../../../sessions/ai_models/downloads/ST-EEGFormer_small_encoder.safetensors",
+  "modalities": ["eeg"],
+  "channels": 8,
+  "embedding_dim": 512,
+  "outputs": ["512-d embedding"],
+  "trusted": true,
+  "inference_ready": false,
+  "notes": "Validated encoder checkpoint. Patch-embed transformer weights are present, but a KYMA forward wrapper is not implemented yet."
+}

@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 try:
+    from scipy import io as scipy_io
     from scipy import signal as scipy_signal
 
     _SCIPY_ERROR: Optional[Exception] = None
 except Exception as exc:  # pragma: no cover - optional runtime dependency
+    scipy_io = None  # type: ignore[assignment]
     scipy_signal = None  # type: ignore[assignment]
     _SCIPY_ERROR = exc
 
@@ -28,12 +33,67 @@ def _round_grid(values: np.ndarray, digits: int = 5) -> List[List[float]]:
     return [[round(float(v), digits) for v in row] for row in arr.tolist()]
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _safe_name(value: str, fallback: str = "selected_chunk") -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in (value or "").strip())
+    cleaned = cleaned.strip("._-")
+    return cleaned[:64] or fallback
+
+
+def _matlab_field_name(value: str, fallback: str = "field") -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in str(value or "").strip())
+    cleaned = cleaned.strip("_")
+    if not cleaned:
+        cleaned = fallback
+    if cleaned[0].isdigit():
+        cleaned = f"f_{cleaned}"
+    return cleaned[:63]
+
+
+def _to_matlab_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            _matlab_field_name(key): _to_matlab_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, np.ndarray):
+        if value.dtype.kind in {"U", "S"}:
+            return value.astype(object)
+        return value
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return np.asarray([], dtype=np.float64)
+        if all(isinstance(item, str) for item in value):
+            return np.asarray([str(item) for item in value], dtype=object)
+        try:
+            arr = np.asarray(value, dtype=np.float64)
+            if arr.dtype != object:
+                return arr
+        except (TypeError, ValueError):
+            pass
+        return np.asarray([_to_matlab_value(item) for item in value], dtype=object)
+    if isinstance(value, np.generic):
+        return value.item()
+    if value is None:
+        return ""
+    if isinstance(value, (bool, int, float, str)):
+        return value
+    return str(value)
+
+
 class SignalWorkshop:
     """Backend DSP analysis for a selected biosignal chunk."""
 
     MAX_CHANNELS = 16
     MAX_SAMPLES = 4096
     LAPLACE_SIGMA = (0.0, 0.5, 1.0, 2.0, 4.0, 6.0)
+
+    def __init__(self, export_root: Optional[Path] = None):
+        self.export_root = Path(export_root or Path("sessions") / "workshop_exports")
+        self.export_root.mkdir(parents=True, exist_ok=True)
 
     @property
     def available(self) -> bool:
@@ -49,6 +109,7 @@ class SignalWorkshop:
         return {
             "available": self.available,
             "last_error": self.error_message,
+            "export_dir": self.export_root.as_posix(),
             "views": [
                 "fft",
                 "psd",
@@ -136,6 +197,162 @@ class SignalWorkshop:
                 "freq_hz": _round_list(laplace_freq, 4),
                 "mag_db_grid": _round_grid(laplace_db, 3),
             },
+        }
+
+    def save(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        prepared = self._prepare_save_payload(payload)
+        channels = prepared["channels"]
+        sample_rate = float(prepared["sample_rate"])
+        labels = list(prepared["labels"])
+        focus_idx = int(prepared["focus_idx"])
+        selection_label = str(prepared["selection_label"])
+        selection_meta = dict(prepared["selection_meta"])
+        analysis = dict(prepared["analysis"])
+        request = dict(prepared["request"])
+        stem = str(prepared["stem"])
+        path = self.export_root / f"{stem}.json"
+        duration_ms = float(prepared["duration_ms"])
+
+        saved = {
+            "saved_at": str(prepared["saved_at"]),
+            "profile": str(prepared["profile"]),
+            "selection_label": selection_label or "selected_chunk",
+            "selection_start_s": request.get("selection_start_s"),
+            "selection_end_s": request.get("selection_end_s"),
+            "sample_rate": int(round(sample_rate)),
+            "channel_labels": labels,
+            "focus_channel": int(focus_idx),
+            "focus_label": labels[focus_idx],
+            "samples": int(channels.shape[1]),
+            "duration_ms": _round_scalar(duration_ms, 3),
+            "selection_meta": selection_meta,
+            "summary": analysis.get("summary") if isinstance(analysis, dict) else None,
+            "analysis": analysis,
+            "request": {
+                "profile": str(request.get("profile") or "").strip().lower() or "signal",
+                "sample_rate": int(round(sample_rate)),
+                "channel_labels": labels,
+                "focus_channel": int(focus_idx),
+                "selection_label": selection_label or "selected_chunk",
+                "selection_start_s": request.get("selection_start_s"),
+                "selection_end_s": request.get("selection_end_s"),
+            },
+            "signal": {
+                "channels": _round_grid(channels, 6),
+                "samples": int(channels.shape[1]),
+                "n_channels": int(channels.shape[0]),
+            },
+        }
+
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(saved, fh, indent=2)
+
+        return {
+            "ok": True,
+            "saved": {
+                "filename": path.name,
+                "path": path.as_posix(),
+                "saved_at": saved["saved_at"],
+                "selection_label": saved["selection_label"],
+                "samples": saved["samples"],
+                "channels": saved["signal"]["n_channels"],
+            },
+        }
+
+    def export_matlab(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if scipy_io is None:
+            raise RuntimeError(f"Signal workshop MATLAB export requires SciPy: {self.error_message}")
+
+        prepared = self._prepare_save_payload(payload)
+        channels = prepared["channels"]
+        sample_rate = float(prepared["sample_rate"])
+        labels = list(prepared["labels"])
+        focus_idx = int(prepared["focus_idx"])
+        selection_label = str(prepared["selection_label"])
+        selection_meta = dict(prepared["selection_meta"])
+        analysis = dict(prepared["analysis"])
+        request = dict(prepared["request"])
+        stem = str(prepared["stem"])
+        saved_at = str(prepared["saved_at"])
+        duration_ms = float(prepared["duration_ms"])
+        path = self.export_root / f"{stem}.mat"
+
+        matlab_payload = {
+            "kyma": _to_matlab_value(
+                {
+                    "saved_at": saved_at,
+                    "profile": str(prepared["profile"]),
+                    "selection_label": selection_label or "selected_chunk",
+                    "selection_start_s": request.get("selection_start_s"),
+                    "selection_end_s": request.get("selection_end_s"),
+                    "sample_rate_hz": sample_rate,
+                    "channel_labels": labels,
+                    "focus_channel_zero_based": focus_idx,
+                    "focus_channel_one_based": focus_idx + 1,
+                    "focus_label": labels[focus_idx],
+                    "duration_ms": duration_ms,
+                    "selection_meta": selection_meta,
+                    "request": request,
+                    "analysis": analysis,
+                }
+            ),
+            "signal_channels": channels.astype(np.float64),
+            "sample_rate_hz": float(sample_rate),
+            "channel_labels": np.asarray(labels, dtype=object),
+            "focus_channel_zero_based": int(focus_idx),
+            "focus_channel_one_based": int(focus_idx + 1),
+            "analysis": _to_matlab_value(analysis),
+            "selection_meta": _to_matlab_value(selection_meta),
+        }
+        scipy_io.savemat(path, matlab_payload, do_compression=True, long_field_names=True)
+
+        return {
+            "ok": True,
+            "exported": {
+                "format": "matlab",
+                "filename": path.name,
+                "path": path.as_posix(),
+                "saved_at": saved_at,
+                "selection_label": selection_label or "selected_chunk",
+                "samples": int(channels.shape[1]),
+                "channels": int(channels.shape[0]),
+            },
+        }
+
+    def _prepare_save_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        request = payload.get("request") or {}
+        if not isinstance(request, dict) or not request:
+            raise ValueError("Signal workshop save requires a valid request payload")
+
+        analysis = payload.get("analysis") or {}
+        if analysis and not isinstance(analysis, dict):
+            raise ValueError("Signal workshop save requires analysis to be an object")
+
+        selection_meta = payload.get("selection_meta") or {}
+        if selection_meta and not isinstance(selection_meta, dict):
+            raise ValueError("Signal workshop save requires selection metadata to be an object")
+
+        channels, sample_rate, labels, focus_idx = self._normalize_payload(request)
+        if not analysis:
+            analysis = self.analyze(request)
+
+        selection_label = str(
+            request.get("selection_label") or selection_meta.get("selectionLabel") or "selected_chunk"
+        ).strip()
+        timestamp = datetime.now(timezone.utc)
+        return {
+            "request": request,
+            "analysis": analysis,
+            "selection_meta": selection_meta,
+            "channels": channels,
+            "sample_rate": sample_rate,
+            "labels": labels,
+            "focus_idx": focus_idx,
+            "selection_label": selection_label,
+            "stem": f"{timestamp.strftime('%Y%m%d_%H%M%S')}_{_safe_name(selection_label)}",
+            "saved_at": _utc_now_iso(),
+            "duration_ms": (channels.shape[1] / max(sample_rate, 1.0)) * 1000.0,
+            "profile": str(request.get("profile") or "").strip().lower() or "signal",
         }
 
     def _normalize_payload(self, payload: Dict[str, Any]) -> Tuple[np.ndarray, float, List[str], int]:

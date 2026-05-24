@@ -175,6 +175,14 @@ class OSCBridge:
         self._send_event("analog_write", payload)
         return ok
 
+    def send_custom(self, address: str, value: Any) -> bool:
+        if not self.is_active:
+            return False
+        clean = "/" + str(address or "").strip().lstrip("/")
+        if clean == "/":
+            return False
+        return self._send(clean, value)
+
     def _send_event(self, event: str, payload: Optional[Dict[str, Any]] = None) -> bool:
         if not self.is_active or not self.mirror_events:
             return False

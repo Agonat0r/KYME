@@ -43,6 +43,9 @@ GESTURE_ANGLES: Dict[str, Dict[int, int]] = {
     "close": {0: 150, 1: 150, 2: 150, 3: 150, 4: 150, 5: 90, 6: 90, 7: 90},
     "pinch": {0: 150, 1: 150, 2: 30,  3: 30,  4: 30,  5: 90, 6: 90, 7: 90},
     "point": {0: 30,  1: 150, 2: 150, 3: 150, 4: 150, 5: 90, 6: 90, 7: 90},
+    # Bilateral forearm test: left EMG class drives servo/joint 0, right drives servo/joint 1.
+    "left_flex":  {0: 150, 1: 90},
+    "right_flex": {0: 90,  1: 150},
 }
 
 
@@ -52,6 +55,7 @@ class ArduinoBridge:
         self._lock = threading.Lock()
         self._connected: bool = False
         self._estop_active: bool = False
+        self._port: Optional[str] = None
 
     # ── Properties ────────────────────────────────────────────────────────
 
@@ -68,6 +72,15 @@ class ArduinoBridge:
     def connect(self, port: str = None, baud: int = None) -> bool:
         port = port or config.arduino_port
         baud = baud or config.arduino_baud
+        if (
+            self._connected
+            and self._serial
+            and self._serial.is_open
+            and str(self._port or "").upper() == str(port or "").upper()
+        ):
+            return True
+        if self._serial and self._serial.is_open:
+            self.disconnect()
         try:
             self._serial = serial.Serial(
                 port=port,
@@ -77,6 +90,7 @@ class ArduinoBridge:
             )
             time.sleep(2.0)            # wait for Arduino bootloader reset
             self._connected = True
+            self._port = port
             logger.info(f"Arduino opened on {port}")
             # Drain the ready-signal byte the firmware sends at startup
             self._serial.reset_input_buffer()
@@ -91,6 +105,7 @@ class ArduinoBridge:
         if self._serial and self._serial.is_open:
             self._serial.close()
         self._connected = False
+        self._port = None
 
     # ── High-level commands ───────────────────────────────────────────────
 
@@ -152,6 +167,22 @@ class ArduinoBridge:
 
     # ── Low-level ─────────────────────────────────────────────────────────
 
+    def serial_write(self, text: str) -> bool:
+        if not self._serial or not self._serial.is_open:
+            return False
+        payload = str(text or "")
+        if not payload:
+            return False
+        try:
+            with self._lock:
+                self._serial.write(payload.encode("utf-8"))
+                self._serial.flush()
+            return True
+        except serial.SerialException as exc:
+            logger.error(f"Serial write failed: {exc}")
+            self._connected = False
+            return False
+
     def _send(self, data: bytes) -> Optional[bytes]:
         if not self._serial or not self._serial.is_open:
             return None
@@ -212,4 +243,8 @@ class MockArduinoBridge(ArduinoBridge):
         if self._estop_active:
             return False
         logger.debug(f"[MOCK] ANALOG_WRITE pin={pin} value={value}")
+        return True
+
+    def serial_write(self, text: str) -> bool:
+        logger.debug(f"[MOCK] SERIAL_WRITE text={text!r}")
         return True

@@ -1,0 +1,47 @@
+name: Repo Maintenance
+
+on:
+  schedule:
+    - cron: '17 12 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  daily-report:
+    name: Open Agent-Ready Maintenance Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create maintenance issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10);
+            const title = `KYMA maintenance report - ${date}`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'automation,maintenance',
+            });
+            if (issues.some(issue => issue.title === title)) return;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              labels: ['automation', 'maintenance'],
+              body: [
+                'Agent-ready checklist for the next KYMA maintenance pass.',
+                '',
+                '- [ ] Review failing CI, browser, security, and ML workflow runs.',
+                '- [ ] Check new dependencies for biosignal, ML, browser, and security changes.',
+                '- [ ] Summarize open bugs affecting acquisition, live inference, highlighting, or export.',
+                '- [ ] Propose one latency improvement and one researcher-facing workflow improvement.',
+                '- [ ] Update docs if behavior changed.',
+                '',
+                'Use `.github/agentic-workflows/kyma-maintenance.md` as the instruction file for an agentic coding pass.'
+              ].join('\n'),
+            });
+

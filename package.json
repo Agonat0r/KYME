@@ -1,0 +1,13 @@
+{
+  "name": "kyma-automation",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Automation harness for KYMA browser smoke checks.",
+  "scripts": {
+    "check:js": "node --check dashboard/app.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

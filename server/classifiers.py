@@ -15,6 +15,8 @@ All classifiers implement a common interface:
 import logging
 import os
 import pickle
+import sys
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -31,6 +33,13 @@ _F = None
 def _import_torch():
     global _torch, _nn, _F
     if _torch is None:
+        base_dir = Path(__file__).resolve().parents[1] / "sessions"
+        for local_pydeps in (base_dir / "pydeps_rt", base_dir / "pydeps"):
+            if not local_pydeps.exists():
+                continue
+            local_path = str(local_pydeps)
+            if local_path not in sys.path:
+                sys.path.insert(0, local_path)
         import torch
         import torch.nn as nn
         import torch.nn.functional as F

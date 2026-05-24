@@ -1,35 +1,59 @@
-# ─── Python ───────────────────────────────────────────────────────────────────
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
-dist/
-build/
-*.egg
 .eggs/
+*.egg
 *.whl
-venv/
+build/
+dist/
 .venv/
+venv/
 env/
 .env
+.env.*
+
+# Local dependency/vendor caches
 .deps/
 vendor/
+node_modules/
 
-# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+# IDE and local assistant state
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
-.claude/
 
-# ─── OS ───────────────────────────────────────────────────────────────────────
+# OS files
 .DS_Store
 Thumbs.db
 desktop.ini
 *.lnk
 
-# ─── Models (large binaries — tracked separately or via LFS) ─────────────────
+# Test and browser automation output
+.pytest_cache/
+pytest-cache-files-*/
+.playwright/
+.playwright-cli/
+test-results/
+playwright-report/
+output/
+
+# Logs and process output
+*.log
+*.err
+*.out
+logs/
+
+# Generated sessions and local data
+sessions/
+server/sessions/
+reports/
+
+# Local models and generated ML artifacts
 models/*.pkl
 models/*.pt
 models/*.pth
@@ -38,22 +62,17 @@ server/models/*.pkl
 server/models/*.pt
 server/models/*.pth
 server/models/*.onnx
+artifacts/ml/*.pkl
+artifacts/ml/*.json
+mlruns/
 
-# ─── Sessions (user-recorded data — not for repo) ────────────────────────────
-sessions/
-server/sessions/
+# DVC local cache/state. Keep .dvc/config and pipeline files tracked.
+.dvc/cache/
+.dvc/tmp/
 
-# ─── Logs ─────────────────────────────────────────────────────────────────────
-*.log
-*.err
-*.out
-logs/
-
-# ─── Node (if dashboard ever gets a build step) ──────────────────────────────
-node_modules/
-package-lock.json
-
-# ─── Misc ─────────────────────────────────────────────────────────────────────
+# Misc generated files
 *.bak
 *.tmp
 *.orig
+{}
+docs/*.local.md

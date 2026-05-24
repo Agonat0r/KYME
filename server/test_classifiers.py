@@ -169,7 +169,7 @@ def main():
         ("registry", test_registry),
         ("LDA", test_lda),
         ("TCN", lambda: test_torch_classifier("TCN", TCNClassifier, epochs_override=25)),
-        ("Mamba", lambda: test_torch_classifier("Mamba", MambaClassifier, epochs_override=20)),
+        ("Mamba", lambda: test_torch_classifier("Mamba", MambaClassifier, epochs_override=80)),
     ):
         try:
             summary[name] = fn()

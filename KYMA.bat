@@ -2,6 +2,8 @@
 title KYMA
 cd /d "%~dp0"
 set "PYTHONNOUSERSITE=1"
+set "PYTHONSAFEPATH=1"
+set "KYMA_PYTHON_FLAGS=-I"
 
 echo.
 echo   ========================================
@@ -11,20 +13,19 @@ echo.
 
 set "KYMA_PYTHON="
 if exist ".venv\Scripts\python.exe" (
-    .venv\Scripts\python.exe -s -c "import numpy, fastapi, uvicorn, pydantic" >nul 2>&1 && set "KYMA_PYTHON=.venv\Scripts\python.exe"
+    .venv\Scripts\python.exe %KYMA_PYTHON_FLAGS% -c "import numpy, fastapi, uvicorn, pydantic, click; assert hasattr(click, 'Choice')" >nul 2>&1 && set "KYMA_PYTHON=.venv\Scripts\python.exe"
 )
 
 if not defined KYMA_PYTHON if exist "C:\packman-repo\python\3.10.18-nv1-windows-x86_64\python.exe" (
     echo   [WARN] Local .venv is unavailable or unhealthy; using bundled runtime.
     set "KYMA_PYTHON=C:\packman-repo\python\3.10.18-nv1-windows-x86_64\python.exe"
-    set "PYTHONPATH=%cd%\server"
 )
 
 if not defined KYMA_PYTHON (
     set "KYMA_PYTHON=python"
 )
 
-"%KYMA_PYTHON%" --version >nul 2>&1
+"%KYMA_PYTHON%" %KYMA_PYTHON_FLAGS% --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo   [ERROR] Python not found.
     echo   Install Python 3.10+ from https://python.org
@@ -69,7 +70,7 @@ if not exist "launch.py" (
     exit /b 1
 )
 
-"%KYMA_PYTHON%" -s launch.py %*
+"%KYMA_PYTHON%" %KYMA_PYTHON_FLAGS% launch.py %*
 echo.
 echo   KYMA has stopped. Exit code: %errorlevel%
 echo.

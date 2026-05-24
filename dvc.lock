@@ -1,0 +1,36 @@
+schema: '2.0'
+stages:
+  prompt_model_smoke:
+    cmd: python scripts/ml_prompt_smoke.py --samples-per-label 48 --channels 8 
+      --window-samples 50 --seed 42 --validation-fraction 0.25 
+      --minimum-accuracy 0.85 --out-dir reports/ml --artifact-dir artifacts/ml
+    deps:
+    - path: scripts/ml_prompt_smoke.py
+      hash: md5
+      md5: 7c6ab006d5972881d9b23e440b0d8246
+      size: 6307
+    params:
+      params.yaml:
+        prompt_smoke:
+          labels:
+          - fresh
+          - fatiguing
+          samples_per_label: 48
+          channels: 8
+          window_samples: 50
+          seed: 42
+          validation_fraction: 0.25
+          minimum_accuracy: 0.85
+    outs:
+    - path: artifacts/ml/prompt_smoke_model.pkl
+      hash: md5
+      md5: 93bae976d1ababd4eb4c060c9aff75eb
+      size: 3326
+    - path: artifacts/ml/prompt_smoke_model_card.json
+      hash: md5
+      md5: d729da6045dc5e9e3bd5c9123b2e62f9
+      size: 330
+    - path: reports/ml/prompt_smoke_metrics.json
+      hash: md5
+      md5: d729da6045dc5e9e3bd5c9123b2e62f9
+      size: 330

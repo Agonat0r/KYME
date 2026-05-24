@@ -1,0 +1,22 @@
+stages:
+  prompt_model_smoke:
+    cmd: >-
+      python scripts/ml_prompt_smoke.py
+      --samples-per-label ${prompt_smoke.samples_per_label}
+      --channels ${prompt_smoke.channels}
+      --window-samples ${prompt_smoke.window_samples}
+      --seed ${prompt_smoke.seed}
+      --validation-fraction ${prompt_smoke.validation_fraction}
+      --minimum-accuracy ${prompt_smoke.minimum_accuracy}
+      --out-dir reports/ml
+      --artifact-dir artifacts/ml
+    deps:
+      - scripts/ml_prompt_smoke.py
+    params:
+      - prompt_smoke
+    outs:
+      - artifacts/ml/prompt_smoke_model.pkl
+      - artifacts/ml/prompt_smoke_model_card.json
+    metrics:
+      - reports/ml/prompt_smoke_metrics.json:
+          cache: false

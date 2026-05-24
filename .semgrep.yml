@@ -1,0 +1,22 @@
+rules:
+  - id: kyma-subprocess-shell-risk
+    message: Avoid shell=True or string-built subprocess commands for runtime paths.
+    severity: WARNING
+    languages: [python]
+    pattern-either:
+      - pattern: subprocess.$FUNC(..., shell=True, ...)
+      - pattern: os.system(...)
+    metadata:
+      category: security
+      technology:
+        - python
+
+  - id: kyma-fastapi-hardcoded-secret
+    message: Do not hardcode API keys, tokens, or secrets in source files.
+    severity: ERROR
+    languages: [python, javascript]
+    patterns:
+      - pattern-regex: (?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"]{16,}['\"]
+    metadata:
+      category: security
+

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Syntax and Static Smoke
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Compile Python files
+        shell: pwsh
+        run: |
+          Get-ChildItem server -Filter *.py | ForEach-Object {
+            python -m py_compile $_.FullName
+          }
+          python -m py_compile run.py launch.py
+
+      - name: Check dashboard JavaScript
+        run: node --check dashboard/app.js
+

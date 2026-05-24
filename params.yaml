@@ -1,0 +1,11 @@
+prompt_smoke:
+  labels:
+    - fresh
+    - fatiguing
+  samples_per_label: 48
+  channels: 8
+  window_samples: 50
+  seed: 42
+  validation_fraction: 0.25
+  minimum_accuracy: 0.85
+

@@ -1,0 +1,14 @@
+title = "KYMA gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated/local runtime outputs are ignored by git and should not block source scans."
+paths = [
+  '''^sessions/''',
+  '''^server/sessions/''',
+  '''^output/''',
+  '''^\.deps/''',
+  '''^\.venv/'''
+]

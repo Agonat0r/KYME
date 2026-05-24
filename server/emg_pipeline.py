@@ -451,13 +451,35 @@ class EMGPipeline:
         for lbl in self._train_labels:
             name = config.gestures[lbl]
             counts[name] = counts.get(name, 0) + 1
+
+        # Try to find the saved model path
+        ext = ".pkl" if self._classifier_name == "LDA" else ".pt"
+        profile = config.signal_profile_name
+        model_path = os.path.join(config.model_dir, f"{profile}_{self._classifier_name.lower()}_model{ext}")
+        if not os.path.exists(model_path):
+            model_path = ""
+
         return {
             "total_windows": len(self._train_windows),
             "per_gesture": counts,
             "is_trained": self._is_trained,
             "classifier": self._classifier_name,
+            "accuracy": "N/A",  # filled after training via result dict
+            "model_path": model_path,
+            "n_classes": len(set(self._train_labels)) if self._train_labels else 0,
         }
 
     def get_channel_quality(self, window: np.ndarray) -> List[float]:
         rms = np.sqrt(np.mean(window ** 2, axis=1))
-        return np.clip(rms / 0.1, 0.0, 1.0).tolist()
+        quality: List[float] = []
+        for value in rms:
+            v = float(value)
+            if v < 0.5:
+                quality.append(0.0)
+            elif v < 5.0:
+                quality.append(0.08)
+            elif v < 1000.0:
+                quality.append(0.55)
+            else:
+                quality.append(0.95)
+        return quality

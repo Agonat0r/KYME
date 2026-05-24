@@ -25,6 +25,12 @@ except Exception as exc:  # pragma: no cover - optional dependency at runtime
     _SCIPY_ERROR = exc
 
 
+def _coerce_sos(value: Any) -> np.ndarray:
+    if value is None:
+        return np.empty((0, 6), dtype=np.float64)
+    return np.asarray(value, dtype=np.float64)
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -78,7 +84,10 @@ class FilterLab:
         profile_key = str(item.get("profile_key") or config.signal_profile_name)
         return {
             **item,
-            "response": item.get("response") or self._response_payload(np.asarray(item.get("sos") or [], dtype=np.float64), float(item.get("sample_rate") or config.sample_rate)),
+            "response": item.get("response") or self._response_payload(
+                _coerce_sos(item.get("sos")),
+                float(item.get("sample_rate") or config.sample_rate),
+            ),
             "exports": self._build_exports(item),
             "active": str(self._state.get("active_by_profile", {}).get(profile_key) or "") == str(filter_id),
         }
@@ -150,7 +159,7 @@ class FilterLab:
             "profile_key": item.get("profile_key"),
             "apply_mode": item.get("apply_mode", "append"),
             "sample_rate": float(item.get("sample_rate") or config.sample_rate),
-            "sos": np.asarray(item.get("sos") or [], dtype=np.float64),
+            "sos": _coerce_sos(item.get("sos")),
             "summary": self._summary(item, active_id),
         }
 
@@ -591,7 +600,7 @@ class FilterLab:
     def _export_fixed_point_header(self, item: Dict[str, Any]) -> str:
         response = item.get("response") or {}
         quant = response.get("quantization") or self._quantization_payload(
-            np.asarray(item.get("sos") or [], dtype=np.float64)
+            _coerce_sos(item.get("sos"))
         )
         s16 = quant.get("recommended_s16") or {}
         s32 = quant.get("recommended_s32") or {}

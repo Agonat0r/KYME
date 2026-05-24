@@ -47,7 +47,7 @@ class Config:
     server_port: int = int(os.getenv("PORT", "8000"))
 
     # Misc
-    prediction_confidence_threshold: float = 0.65
+    prediction_confidence_threshold: float = 0.55
     channel_active_threshold: float = 1e-5
 
     def __post_init__(self) -> None:
